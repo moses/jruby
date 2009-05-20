@@ -58,18 +58,20 @@ public class RubyDateFormat extends DateFormat {
     private static final int FORMAT_DAY_S = 6;
     private static final int FORMAT_HOUR = 7;
     private static final int FORMAT_HOUR_M = 8;
-    private static final int FORMAT_DAY_YEAR = 9;
-    private static final int FORMAT_MINUTES = 10;
-    private static final int FORMAT_MONTH = 11;
-    private static final int FORMAT_MERIDIAN = 12;
-    private static final int FORMAT_SECONDS = 13;
-    private static final int FORMAT_WEEK_YEAR_S = 14;
-    private static final int FORMAT_WEEK_YEAR_M = 15;
-    private static final int FORMAT_DAY_WEEK = 16;
-    private static final int FORMAT_YEAR_LONG = 17;
-    private static final int FORMAT_YEAR_SHORT = 18;
-    private static final int FORMAT_ZONE_OFF = 19;
-    private static final int FORMAT_ZONE_ID = 20;
+    private static final int FORMAT_HOUR_S = 9;
+    private static final int FORMAT_DAY_YEAR = 10;
+    private static final int FORMAT_MINUTES = 11;
+    private static final int FORMAT_MONTH = 12;
+    private static final int FORMAT_MERIDIAN = 13;
+    private static final int FORMAT_MERIDIAN_LOWER_CASE = 14;
+    private static final int FORMAT_SECONDS = 15;
+    private static final int FORMAT_WEEK_YEAR_S = 16;
+    private static final int FORMAT_WEEK_YEAR_M = 17;
+    private static final int FORMAT_DAY_WEEK = 18;
+    private static final int FORMAT_YEAR_LONG = 19;
+    private static final int FORMAT_YEAR_SHORT = 20;
+    private static final int FORMAT_ZONE_OFF = 21;
+    private static final int FORMAT_ZONE_ID = 22;
 
     private static class Token {
         private int format;
@@ -187,6 +189,9 @@ public class RubyDateFormat extends DateFormat {
                     case 'j':
                         compiledPattern.add(new Token(FORMAT_DAY_YEAR));
                         break;
+                    case 'l':
+                        compiledPattern.add(new Token(FORMAT_HOUR_S));
+                        break;
                     case 'M':
                         compiledPattern.add(new Token(FORMAT_MINUTES));
                         break;
@@ -195,6 +200,9 @@ public class RubyDateFormat extends DateFormat {
                         break;
                     case 'p':
                         compiledPattern.add(new Token(FORMAT_MERIDIAN));
+                        break;
+                    case 'P':
+                        compiledPattern.add(new Token(FORMAT_MERIDIAN_LOWER_CASE));
                         break;
                     case 'S':
                         compiledPattern.add(new Token(FORMAT_SECONDS));
@@ -317,6 +325,7 @@ public class RubyDateFormat extends DateFormat {
                     toAppendTo.append(value);
                     break;
                 case FORMAT_HOUR_M:
+                case FORMAT_HOUR_S:
                     value = dt.getHourOfDay();
 
                     if(value > 12) {
@@ -327,7 +336,7 @@ public class RubyDateFormat extends DateFormat {
                         toAppendTo.append("12");
                     } else {
                         if (value < 10) {
-                            toAppendTo.append('0');
+                            toAppendTo.append(token.getFormat() == FORMAT_HOUR_M ? '0' : ' ');
                         }
                         toAppendTo.append(value);
                     }
@@ -356,10 +365,11 @@ public class RubyDateFormat extends DateFormat {
                     toAppendTo.append(value);
                     break;
                 case FORMAT_MERIDIAN:
+                case FORMAT_MERIDIAN_LOWER_CASE:
                     if (dt.getHourOfDay() < 12) {
-                        toAppendTo.append("AM");
+                        toAppendTo.append(token.getFormat() == FORMAT_MERIDIAN ? "AM" : "am");
                     } else {
-                        toAppendTo.append("PM");
+                        toAppendTo.append(token.getFormat() == FORMAT_MERIDIAN ? "PM" : "pm");
                     }
                     break;
                 case FORMAT_SECONDS:

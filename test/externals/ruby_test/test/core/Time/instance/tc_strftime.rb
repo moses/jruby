@@ -51,6 +51,12 @@ class TC_Time_Strftime_InstanceMethod < Test::Unit::TestCase
       assert_equal('239', @time.strftime('%j'))
    end
 
+   def test_strftime_l
+      assert_equal('10', @time.strftime('%l'))
+      morning_time = Time.local(2004, 8, 26, 6, 38, 3)
+      assert_equal(' 6', morning_time.strftime('%l'))
+   end
+
    def test_strftime_m
       assert_equal('08', @time.strftime('%m'))
    end
@@ -61,6 +67,10 @@ class TC_Time_Strftime_InstanceMethod < Test::Unit::TestCase
 
    def test_strftime_p
       assert_equal('PM', @time.strftime('%p'))
+   end
+
+   def test_strftime_P
+      assert_equal('pm', @time.strftime('%P'))
    end
 
    def test_strftime_S
