@@ -99,15 +99,19 @@ public class RubyObjectSpace {
             // odd
             return runtime.newFixnum((longId - 1) / 2);
         } else {
-            IRubyObject object = runtime.getObjectSpace().id2ref(longId);
-            if (object == null) {
+            if (runtime.isObjectSpaceEnabled()) {
+                IRubyObject object = runtime.getObjectSpace().id2ref(longId);
+                if (object == null) {
+                    return runtime.getNil();
+                }
+                return object;
+            } else {
+                runtime.getWarnings().warn("ObjectSpace is disabled; _id2ref only supports immediates, pass -X+O to enable");
                 return runtime.getNil();
             }
-            return object;
         }
     }
     
-    @JRubyMethod(name = "each_object", optional = 1, frame = true, module = true, visibility = Visibility.PRIVATE)
     public static IRubyObject each_object(ThreadContext context, IRubyObject recv, IRubyObject[] args, Block block) {
         RubyModule rubyClass;
         if (args.length == 0) {
@@ -144,7 +148,7 @@ public class RubyObjectSpace {
         return recv.getRuntime().newFixnum(count);
     }
 
-    @JRubyMethod(name = "each_object", optional = 1, frame = true, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_9)
+    @JRubyMethod(name = "each_object", optional = 1, frame = true, module = true, visibility = Visibility.PRIVATE)
     public static IRubyObject each_object19(ThreadContext context, IRubyObject recv, IRubyObject[] args, Block block) {
         return block.isGiven() ? each_object(context, recv, args, block) : enumeratorize(context.getRuntime(), recv, "each_object", args);
     }

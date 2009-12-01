@@ -110,7 +110,7 @@ public class Struct extends RubyObject implements StructLayout.Storage {
     @JRubyMethod(name = "initialize")
     public IRubyObject initialize(ThreadContext context) {
 
-        memory = new Buffer(context.getRuntime(), layout.getSize(), flags);
+        memory = MemoryPointer.allocate(context.getRuntime(), layout.getSize(), 1, true);
 
         return this;
     }
@@ -123,8 +123,13 @@ public class Struct extends RubyObject implements StructLayout.Storage {
                     + ptr.getMetaClass().getName() + " (expected Pointer or Buffer)");
         }
 
-        memory = (AbstractMemory) ptr;
+        if (((AbstractMemory) ptr).getSize() < layout.getSize()) {
+            throw context.getRuntime().newArgumentError("memory object has insufficient space for "
+                    + getMetaClass().getName());
+        }
 
+        memory = (AbstractMemory) ptr;
+        
         return this;
     }
 

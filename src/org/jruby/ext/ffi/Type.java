@@ -1,11 +1,14 @@
 
 package org.jruby.ext.ffi;
 
+import java.util.Map;
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyModule;
+import org.jruby.RubyNumeric;
 import org.jruby.RubyObject;
 import org.jruby.RubyString;
+import org.jruby.RubySymbol;
 import org.jruby.anno.JRubyClass;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.ObjectAllocator;
@@ -38,19 +41,67 @@ public abstract class Type extends RubyObject {
         
         RubyModule nativeType = ffiModule.defineModuleUnder("NativeType");
 
+        
+        defineBuiltinType(runtime, builtinClass, NativeType.CHAR, "char", "int8", "sint8");
+        defineBuiltinType(runtime, builtinClass, NativeType.UCHAR, "uchar", "uint8");
+        defineBuiltinType(runtime, builtinClass, NativeType.SHORT, "short", "int16", "sint16");
+        defineBuiltinType(runtime, builtinClass, NativeType.USHORT, "ushort", "uint16");
+        defineBuiltinType(runtime, builtinClass, NativeType.INT, "int", "int32", "sint32");
+        defineBuiltinType(runtime, builtinClass, NativeType.UINT, "uint", "uint32");
+        defineBuiltinType(runtime, builtinClass, NativeType.LONG_LONG, "long_long", "int64", "sint64");
+        defineBuiltinType(runtime, builtinClass, NativeType.ULONG_LONG, "ulong_long", "uint64");
+        defineBuiltinType(runtime, builtinClass, NativeType.LONG, "long");
+        defineBuiltinType(runtime, builtinClass, NativeType.ULONG, "ulong");
+        defineBuiltinType(runtime, builtinClass, NativeType.FLOAT, "float", "float32");
+        defineBuiltinType(runtime, builtinClass, NativeType.DOUBLE, "double", "float64");
+        
         for (NativeType t : NativeType.values()) {
-            try {
-                Type b = new Builtin(runtime, builtinClass, t);
-                typeClass.fastSetConstant(t.name(), b);
-                nativeType.fastSetConstant(t.name(), b);
-                ffiModule.fastSetConstant("TYPE_" + t.name(), b);
-            } catch (UnsupportedOperationException ex) { }
+            if (!builtinClass.hasConstant(t.name())) {
+                try {
+                    Type b = new Builtin(runtime, builtinClass, t, t.name().toLowerCase());
+                    builtinClass.defineConstant(t.name().toUpperCase(), b);
+                } catch (UnsupportedOperationException ex) {
+                }
+
+            }
         }
+
+        //
+        // Add aliases in Type::*, NativeType::* and FFI::TYPE_*
+        //
+        for (Map.Entry<String, IRubyObject> c : builtinClass.getConstantMap().entrySet()) {
+            if (c.getValue() instanceof Type.Builtin) {
+                typeClass.defineConstant(c.getKey(), c.getValue());
+                nativeType.defineConstant(c.getKey(), c.getValue());
+                ffiModule.defineConstant("TYPE_" + c.getKey(), c.getValue());
+            }
+        }
+
+        RubyClass arrayTypeClass = typeClass.defineClassUnder("Array", typeClass,
+                ObjectAllocator.NOT_ALLOCATABLE_ALLOCATOR);
+        arrayTypeClass.defineAnnotatedMethods(Type.Array.class);
 
         return typeClass;
     }
-    
-    
+
+    private static final void defineBuiltinType(Ruby runtime, RubyClass builtinClass, NativeType nativeType, String... names) {
+        try {
+            if (names.length > 0) {
+                for (String n : names) {
+                    builtinClass.setConstant(n.toUpperCase(),
+                            new Builtin(runtime, builtinClass, nativeType, n.toLowerCase()));
+                }
+            } else {
+                builtinClass.setConstant(nativeType.name(),
+                        new Builtin(runtime, builtinClass, nativeType, nativeType.name().toLowerCase()));
+            }
+        } catch (UnsupportedOperationException ex) {
+        }
+    }
+    public static final RubyClass getTypeClass(Ruby runtime) {
+        return runtime.fastGetModule("FFI").fastGetClass("Type");
+    }
+
     /**
      * Initializes a new <tt>Type</tt> instance.
      */
@@ -122,12 +173,14 @@ public abstract class Type extends RubyObject {
 
     @JRubyClass(name = "FFI::Type::Builtin", parent = "FFI::Type")
     public final static class Builtin extends Type {
-        
+        private final RubySymbol sym;
+
         /**
          * Initializes a new <tt>BuiltinType</tt> instance.
          */
-        private Builtin(Ruby runtime, RubyClass klass, NativeType nativeType) {
+        private Builtin(Ruby runtime, RubyClass klass, NativeType nativeType, String symName) {
             super(runtime, klass, nativeType, Type.getNativeSize(nativeType), Type.getNativeAlignment(nativeType));
+            this.sym = runtime.newSymbol(symName);
         }
 
         @JRubyMethod(name = "to_s")
@@ -153,23 +206,98 @@ public abstract class Type extends RubyObject {
             hash = 23 * hash + nativeType.hashCode();
             return hash;
         }
+
+        @JRubyMethod
+        public final IRubyObject to_sym(ThreadContext context) {
+            return sym;
+        }
+
+        @Override
+        @JRubyMethod(name = "==", required = 1)
+        public IRubyObject op_equal(ThreadContext context, IRubyObject obj) {
+            return context.getRuntime().newBoolean(this.equals(obj));
+        }
+
+        @Override
+        @JRubyMethod(name = "equal?", required = 1)
+        public IRubyObject equal_p(ThreadContext context, IRubyObject obj) {
+            return context.getRuntime().newBoolean(this.equals(obj));
+        }
+        
+        @JRubyMethod(name = "eql?", required = 1)
+        public IRubyObject eql_p(ThreadContext context, IRubyObject obj) {
+            return context.getRuntime().newBoolean(this.equals(obj));
+        }
+
+    }
+
+    @JRubyClass(name = "FFI::Type::Array", parent = "FFI::Type")
+    public final static class Array extends Type {
+        private final Type componentType;
+        private final int length;
+
+        /**
+         * Initializes a new <tt>Type.Array</tt> instance.
+         */
+        public Array(Ruby runtime, RubyClass klass, Type componentType, int length) {
+            super(runtime, klass, NativeType.ARRAY, componentType.getNativeSize() * length, componentType.getNativeAlignment());
+            this.componentType = componentType;
+            this.length = length;
+        }
+
+        /**
+         * Initializes a new <tt>Type.Array</tt> instance.
+         */
+        public Array(Ruby runtime, Type componentType, int length) {
+            this(runtime, getTypeClass(runtime).fastGetClass("Array"), componentType, length);
+        }
+
+
+        public final Type getComponentType() {
+            return componentType;
+        }
+
+        public final int length() {
+            return length;
+        }
+
+        @JRubyMethod(name = "new", required = 2, meta = true)
+        public static final IRubyObject newInstance(ThreadContext context, IRubyObject klass, IRubyObject componentType, IRubyObject length) {
+            if (!(componentType instanceof Type)) {
+                throw context.getRuntime().newTypeError(componentType, getTypeClass(context.getRuntime()));
+            }
+
+            return new Array(context.getRuntime(), (RubyClass) klass, (Type) componentType, RubyNumeric.fix2int(length));
+        }
+
+        @JRubyMethod
+        public final IRubyObject length(ThreadContext context) {
+            return context.getRuntime().newFixnum(length);
+        }
+
+        @JRubyMethod
+        public final IRubyObject elem_type(ThreadContext context) {
+            return componentType;
+        }
+
     }
 
     private static final boolean isPrimitive(NativeType type) {
         switch (type) {
             case VOID:
-            case INT8:
-            case UINT8:
-            case INT16:
-            case UINT16:
-            case INT32:
-            case UINT32:
-            case INT64:
-            case UINT64:
+            case BOOL:
+            case CHAR:
+            case UCHAR:
+            case SHORT:
+            case USHORT:
+            case INT:
+            case UINT:
+            case LONG_LONG:
+            case ULONG_LONG:
             case LONG:
             case ULONG:
-            case FLOAT32:
-            case FLOAT64:
+            case FLOAT:
+            case DOUBLE:
             case BUFFER_IN:
             case BUFFER_INOUT:
             case BUFFER_OUT:

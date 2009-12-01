@@ -14,6 +14,51 @@ class TestLaunchingByShellScript < Test::Unit::TestCase
     assert_equal 0, $?.exitstatus
   end
 
+  # JRUBY-4042
+  def test_jruby_without_args
+    jruby_with_pipe("echo puts 1")
+    assert_equal 0, $?.exitstatus
+  end
+
+  # JRUBY-4045
+  def test_with_pipe_chars
+    out = jruby('-e "(1..3).each{|f| print f}"') # no space after each
+    assert_equal 0, $?.exitstatus
+    assert_equal "123", out
+
+    out = jruby('-e "(1..3).each {|f| print f}"') # space after each
+    assert_equal 0, $?.exitstatus
+    assert_equal "123", out
+  end
+
+  # JRUBY-3159
+  def test_escaping_chars_in_vmopts_processing
+    out = jruby(%{-e "a = 'sq'; print a; (1..3).each {|f| print f}"})
+    assert_equal 0, $?.exitstatus
+    assert_equal "sq123", out
+  end
+
+  # JRUBY-3524
+  def test_with_less_and_more
+    out = jruby('-e "print 2 > 1; print 1<2; print 1== 2"')
+    assert_equal 0, $?.exitstatus
+    assert_equal "truetruefalse", out
+  end
+
+  # JRUBY-4055
+  def test_with_question_and_caret
+    out = jruby('-e "print nil.nil?; print 1 ^ 2"')
+    assert_equal 0, $?.exitstatus
+    assert_equal "true3", out
+  end
+  
+  # JRUBY-4058
+  def test_with_percent
+    out = jruby(%{-e "print '%A%%B%%%C%%%%D'"})
+    assert_equal 0, $?.exitstatus
+    assert_equal "%A%%B%%%C%%%%D", out
+  end
+
   if WINDOWS
     def test_system_call_without_stdin_data_doesnt_hang
       out = jruby(%q{-e "system 'dir test'"})
@@ -124,5 +169,13 @@ class TestLaunchingByShellScript < Test::Unit::TestCase
 
     assert_equal "two", result
     assert_equal 2, $?.exitstatus
+  end
+
+  # JRUBY-4238
+  def test_run_script_from_jar
+      file = "file:" + File.expand_path("test/jar_with_ruby_files.jar") + "!/run_hello_from_jar.rb"
+      out = jruby(file)
+      assert_equal 0, $?.exitstatus
+      assert_equal "hello", out.strip
   end
 end

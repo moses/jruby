@@ -83,6 +83,24 @@ import org.jruby.util.TypeConverter;
 public class RubyKernel {
     public final static Class<?> IRUBY_OBJECT = IRubyObject.class;
 
+    public static abstract class MethodMissingMethod extends JavaMethodNBlock {
+        public MethodMissingMethod(RubyModule implementationClass) {
+            super(implementationClass, Visibility.PRIVATE, CallConfiguration.FrameFullScopeNone);
+        }
+
+        @Override
+        public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
+            try {
+                preFrameOnly(context, self, name, block);
+                return methodMissing(context, self, clazz, name, args, block);
+            } finally {
+                postFrameOnly(context);
+            }
+        }
+
+        public abstract IRubyObject methodMissing(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block);
+
+    }
     public static RubyModule createKernelModule(Ruby runtime) {
         RubyModule module = runtime.defineModule("Kernel");
         runtime.setKernel(module);
@@ -94,38 +112,38 @@ public class RubyKernel {
         
         module.setFlag(RubyObject.USER7_F, false); //Kernel is the only Module that doesn't need an implementor
 
-        runtime.setPrivateMethodMissing(new JavaMethodNBlock(module, Visibility.PRIVATE, CallConfiguration.FrameFullScopeNone) {
+        runtime.setPrivateMethodMissing(new MethodMissingMethod(module) {
             @Override
-            public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
-                return methodMissing(context, self, name, PRIVATE, CallType.NORMAL, args, block);
+            public IRubyObject methodMissing(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
+                return RubyKernel.methodMissing(context, self, name, PRIVATE, CallType.NORMAL, args, block);
             }
         });
 
-        runtime.setProtectedMethodMissing(new JavaMethodNBlock(module, Visibility.PRIVATE, CallConfiguration.FrameFullScopeNone) {
+        runtime.setProtectedMethodMissing(new MethodMissingMethod(module) {
             @Override
-            public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
-                return methodMissing(context, self, name, PROTECTED, CallType.NORMAL, args, block);
+            public IRubyObject methodMissing(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
+                return RubyKernel.methodMissing(context, self, name, PROTECTED, CallType.NORMAL, args, block);
             }
         });
 
-        runtime.setVariableMethodMissing(new JavaMethodNBlock(module, Visibility.PRIVATE, CallConfiguration.FrameFullScopeNone) {
+        runtime.setVariableMethodMissing(new MethodMissingMethod(module) {
             @Override
-            public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
-                return methodMissing(context, self, name, PUBLIC, CallType.VARIABLE, args, block);
+            public IRubyObject methodMissing(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
+                return RubyKernel.methodMissing(context, self, name, PUBLIC, CallType.VARIABLE, args, block);
             }
         });
 
-        runtime.setSuperMethodMissing(new JavaMethodNBlock(module, Visibility.PRIVATE, CallConfiguration.FrameFullScopeNone) {
+        runtime.setSuperMethodMissing(new MethodMissingMethod(module) {
             @Override
-            public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
-                return methodMissing(context, self, name, PUBLIC, CallType.SUPER, args, block);
+            public IRubyObject methodMissing(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
+                return RubyKernel.methodMissing(context, self, name, PUBLIC, CallType.SUPER, args, block);
             }
         });
 
-        runtime.setNormalMethodMissing(new JavaMethodNBlock(module, Visibility.PRIVATE, CallConfiguration.FrameFullScopeNone) {
+        runtime.setNormalMethodMissing(new MethodMissingMethod(module) {
             @Override
-            public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
-                return methodMissing(context, self, name, PUBLIC, CallType.NORMAL, args, block);
+            public IRubyObject methodMissing(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
+                return RubyKernel.methodMissing(context, self, name, PUBLIC, CallType.NORMAL, args, block);
             }
         });
 
@@ -275,7 +293,7 @@ public class RubyKernel {
 
     @JRubyMethod(name = "gets", optional = 1, module = true, visibility = PRIVATE)
     public static IRubyObject gets(ThreadContext context, IRubyObject recv, IRubyObject[] args) {
-        return RubyArgsFile.gets(context, context.getRuntime().getGlobalVariables().get("$<"), args);
+        return RubyArgsFile.gets(context, context.getRuntime().getArgsFile(), args);
     }
 
     @JRubyMethod(name = "abort", optional = 1, module = true, visibility = PRIVATE)
@@ -451,7 +469,7 @@ public class RubyKernel {
 
     @JRubyMethod(name = "readlines", optional = 1, module = true, visibility = PRIVATE)
     public static IRubyObject readlines(ThreadContext context, IRubyObject recv, IRubyObject[] args) {
-        return RubyArgsFile.readlines(context, context.getRuntime().getGlobalVariables().get("$<"), args);
+        return RubyArgsFile.readlines(context, context.getRuntime().getArgsFile(), args);
     }
 
     /** Returns value of $_.
@@ -743,17 +761,18 @@ public class RubyKernel {
         exit(recv.getRuntime(), args, true);
         return recv.getRuntime().getNil(); // not reached
     }
-    
+
     private static void exit(Ruby runtime, IRubyObject[] args, boolean hard) {
         runtime.secure(4);
 
-        int status = 1;
+        int status = 0;
+
         if (args.length > 0) {
-            RubyObject argument = (RubyObject)args[0];
-            if (argument instanceof RubyFixnum) {
-                status = RubyNumeric.fix2int(argument);
-            } else {
+            RubyObject argument = (RubyObject) args[0];
+            if (argument instanceof RubyBoolean) {
                 status = argument.isFalse() ? 1 : 0;
+            } else {
+                status = RubyNumeric.fix2int(argument);
             }
         }
 
@@ -880,12 +899,12 @@ public class RubyKernel {
     private static void printExceptionSummary(ThreadContext context, Ruby runtime, RubyException rEx) {
         Frame currentFrame = context.getCurrentFrame();
 
-        String msg = String.format("Exception `%s':%s at %s:%s - %s\n",
-                rEx.getMetaClass(), rEx.convertToString().toString(),
+        String msg = String.format("Exception `%s' at %s:%s - %s\n",
+                rEx.getMetaClass(),
                 currentFrame.getFile(), currentFrame.getLine() + 1,
-                rEx.to_s());
+                rEx.convertToString().toString());
 
-        runtime.getErr().print(msg);
+        runtime.getErrorStream().print(msg);
     }
 
     /**
@@ -895,10 +914,25 @@ public class RubyKernel {
      * @param recv ruby object used to call require (any object will do and it won't be used anyway).
      * @param name the name of the file to require
      **/
-    @JRubyMethod(name = "require", required = 1, frame = true, module = true, visibility = PRIVATE)
+    @JRubyMethod(name = "require", required = 1, frame = true, module = true, visibility = PRIVATE, compat = CompatVersion.RUBY1_8)
     public static IRubyObject require(IRubyObject recv, IRubyObject name, Block block) {
-        Ruby runtime = recv.getRuntime();
-        
+        return requireCommon(recv.getRuntime(), recv, name, block);
+    }
+
+    @JRubyMethod(name = "require", required = 1, frame = true, module = true, visibility = PRIVATE, compat = CompatVersion.RUBY1_9)
+    public static IRubyObject require19(ThreadContext context, IRubyObject recv, IRubyObject name, Block block) {
+        Ruby runtime = context.getRuntime();
+
+        IRubyObject tmp = name.checkStringType();
+        if (!tmp.isNil()) {
+            return requireCommon(runtime, recv, tmp, block);
+        }
+
+        return requireCommon(runtime, recv,
+                name.respondsTo("to_path") ? name.callMethod(context, "to_path") : name, block);
+    }
+
+    private static IRubyObject requireCommon(Ruby runtime, IRubyObject recv, IRubyObject name, Block block) {
         if (runtime.getLoadService().lockAndRequire(name.convertToString().toString())) {
             return runtime.getTrue();
         }
@@ -967,7 +1001,6 @@ public class RubyKernel {
         return continuation.enter(context, block);
     }
 
-    @JRubyMethod(name = "caller", optional = 1, frame = true, module = true, visibility = PRIVATE, compat = CompatVersion.RUBY1_8)
     public static IRubyObject caller(ThreadContext context, IRubyObject recv, IRubyObject[] args, Block block) {
         int level = args.length > 0 ? RubyNumeric.fix2int(args[0]) : 1;
 
@@ -978,7 +1011,7 @@ public class RubyKernel {
         return context.createCallerBacktrace(context.getRuntime(), level);
     }
 
-    @JRubyMethod(name = "caller", optional = 1, frame = true, module = true, visibility = PRIVATE, compat = CompatVersion.RUBY1_9)
+    @JRubyMethod(name = "caller", optional = 1, frame = true, module = true, visibility = PRIVATE)
     public static IRubyObject caller1_9(ThreadContext context, IRubyObject recv, IRubyObject[] args, Block block) {
         int level = args.length > 0 ? RubyNumeric.fix2int(args[0]) : 1;
 
@@ -1055,6 +1088,11 @@ public class RubyKernel {
 
     @JRubyMethod(name = "set_trace_func", required = 1, frame = true, module = true, visibility = PRIVATE)
     public static IRubyObject set_trace_func(ThreadContext context, IRubyObject recv, IRubyObject trace_func, Block block) {
+        if (!RubyInstanceConfig.FULL_TRACE_ENABLED) {
+            // without full tracing, many events will not fire
+            context.getRuntime().getWarnings().warn("set_trace_func will not capture all events without --debug flag");
+        }
+        
         if (trace_func.isNil()) {
             context.getRuntime().setTraceFunction(null);
         } else if (!(trace_func instanceof RubyProc)) {
@@ -1119,7 +1157,18 @@ public class RubyKernel {
     public static IRubyObject singleton_method_undefined(ThreadContext context, IRubyObject recv, IRubyObject symbolId, Block block) {
         return context.getRuntime().getNil();
     }
-    
+
+    @JRubyMethod(name = "define_singleton_method", required = 1, optional = 1, module = true, visibility = PRIVATE, compat = CompatVersion.RUBY1_9)
+    public static IRubyObject define_singleton_method(ThreadContext context, IRubyObject recv, IRubyObject[] args, Block block) {
+        if (args.length == 0) throw context.getRuntime().newArgumentError(0, 1);
+
+        RubyClass singleton_class = recv.getSingletonClass();
+        IRubyObject obj = args.length > 1 ?
+            singleton_class.define_method(context, args[0], args[1], block) :
+            singleton_class.define_method(context, args[0], block);
+        return obj;
+    }
+
     @JRubyMethod(name = {"proc", "lambda"}, frame = true, module = true, visibility = PRIVATE, compat = CompatVersion.RUBY1_8)
     public static RubyProc proc(ThreadContext context, IRubyObject recv, Block block) {
         return context.getRuntime().newProc(Block.Type.LAMBDA, block);
@@ -1140,17 +1189,7 @@ public class RubyKernel {
         return context.getRuntime().newProc(Block.Type.PROC, block);
     }
 
-    @JRubyMethod(name = {"loop"}, frame = true, module = true, visibility = PRIVATE, compat = CompatVersion.RUBY1_8)
-    public static IRubyObject loop(ThreadContext context, IRubyObject recv, Block block) {
-        IRubyObject nil = context.getRuntime().getNil();
-        while (true) {
-            block.yield(context, nil);
-
-            context.pollThreadEvents();
-        }
-    }
-    
-    @JRubyMethod(name = {"loop"}, frame = true, module = true, visibility = PRIVATE, compat = CompatVersion.RUBY1_9)
+    @JRubyMethod(name = {"loop"}, frame = true, module = true, visibility = PRIVATE)
     public static IRubyObject loop_1_9(ThreadContext context, IRubyObject recv, Block block) {
         IRubyObject nil = context.getRuntime().getNil();
         RubyClass stopIteration = context.getRuntime().getStopIteration();
@@ -1275,16 +1314,22 @@ public class RubyKernel {
     @JRubyMethod(name = "`", required = 1, module = true, visibility = PRIVATE)
     public static IRubyObject backquote(ThreadContext context, IRubyObject recv, IRubyObject aString) {
         Ruby runtime = context.getRuntime();
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        
         RubyString string = aString.convertToString();
-        int resultCode = ShellLauncher.runAndWait(runtime, new IRubyObject[] {string}, output);
-        
+        IRubyObject[] args = new IRubyObject[] {string};
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        int resultCode;
+
+        try {
+            // NOTE: not searching executable path before invoking args
+            resultCode = ShellLauncher.runAndWait(runtime, args, output, false);
+        } catch (Exception e) {
+            resultCode = 127;
+        }
+
         runtime.getGlobalVariables().set("$?", RubyProcess.RubyStatus.newProcessStatus(runtime, resultCode));
-        
         return RubyString.newStringNoCopy(runtime, output.toByteArray());
     }
-    
+
     @JRubyMethod(name = "srand", module = true, visibility = PRIVATE)
     public static RubyInteger srand(ThreadContext context, IRubyObject recv) {
         Ruby runtime = context.getRuntime();
@@ -1356,11 +1401,13 @@ public class RubyKernel {
     public static RubyBoolean system(ThreadContext context, IRubyObject recv, IRubyObject[] args) {
         Ruby runtime = context.getRuntime();
         int resultCode;
+
         try {
-            resultCode = ShellLauncher.runAndWaitNoError(runtime, args);
+            resultCode = ShellLauncher.runAndWait(runtime, args);
         } catch (Exception e) {
             resultCode = 127;
         }
+
         runtime.getGlobalVariables().set("$?", RubyProcess.RubyStatus.newProcessStatus(runtime, resultCode));
         return runtime.newBoolean(resultCode == 0);
     }
@@ -1379,6 +1426,8 @@ public class RubyKernel {
             // TODO: exec should replace the current process.
             // This could be possible with JNA. 
             resultCode = ShellLauncher.execAndWait(runtime, args);
+        } catch (RaiseException e) {
+            throw e; // no need to wrap this exception
         } catch (Exception e) {
             throw runtime.newErrnoENOENTError("cannot execute");
         }
@@ -1426,7 +1475,7 @@ public class RubyKernel {
         }
     }
 
-    @JRubyMethod(frame = true, module = true, compat = CompatVersion.RUBY1_9)
+    @JRubyMethod(frame = true, module = true)
     public static IRubyObject tap(ThreadContext context, IRubyObject recv, Block block) {
         block.yield(context, recv);
         return recv;
@@ -1446,7 +1495,7 @@ public class RubyKernel {
         }
     }
 
-    @JRubyMethod(name = { "__method__", "__callee__" }, module = true, compat = CompatVersion.RUBY1_9)
+    @JRubyMethod(name = { "__method__", "__callee__" }, module = true, visibility = PRIVATE)
     public static IRubyObject __method__(ThreadContext context, IRubyObject recv) {
         Frame f = context.getCurrentFrame();
         String name = f != null ? f.getName() : null;

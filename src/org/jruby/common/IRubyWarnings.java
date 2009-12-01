@@ -69,6 +69,7 @@ public interface IRubyWarnings {
         NEGATIVE_NUMBER_FOR_U("NEGATIVE_NUMBER_FOR_U"),
         NO_SUPER_CLASS("NO_SUPER_CLASS"),
         NOT_IMPLEMENTED("NOT_IMPLEMENTED"),
+        OBSOLETE_ARGUMENT("OBSOLETE_ARGUMENT"),
         PARENTHISE_ARGUMENTS("PARENTHISE_ARGUMENTS"),
         PROXY_EXTENDED_LATE("PROXY_EXTENDED_LATE"),
         STATEMENT_NOT_REACHED("STATEMENT_NOT_REACHED"), 
@@ -99,6 +100,7 @@ public interface IRubyWarnings {
         }
     }
 
+    public abstract org.jruby.Ruby getRuntime();
     public abstract void warn(ID id, ISourcePosition position, String message, Object... data);
     public abstract void warn(ID id, String fileName, int lineNumber, String message, Object... data);
     public abstract boolean isVerbose();

@@ -411,10 +411,8 @@ class Bar222 < Foo222
   alias b a
 end
 
+# JRUBY-1192
 test_equal('a', Bar222.new.b)
-# I'm proactively calling this a bug and testing the correct behavior
-# http://redmine.ruby-lang.org/issues/show/1151
-# test_equal('b', Bar222.new.method(:b).call)
 test_equal('a', Bar222.new.method(:b).call)
 
 # JRUBY-2267 frames getting overwritten and super failing as a result
@@ -435,3 +433,4 @@ class Bar2267 < Foo2267
 end
 
 test_equal('here', Bar2267.new.foo.call)
+

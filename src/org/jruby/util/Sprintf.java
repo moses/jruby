@@ -484,7 +484,7 @@ public class Sprintf {
                             arg = RubyNumeric.dbl2num(arg.getRuntime(),((RubyFloat)arg).getValue());
                             break;
                         case ClassIndex.STRING:
-                            arg = RubyNumeric.str2inum(arg.getRuntime(),(RubyString)arg,0,true);
+                            arg = ((RubyString)arg).stringToInum(0, true);
                             break;
                         default:
                             if (arg.respondsTo("to_int")) {
@@ -704,7 +704,10 @@ public class Sprintf {
                         incomplete = false;
                         break;
                     }
+
+                    
                     String str = Double.toString(dval);
+                    
                     // grrr, arghh, want to subclass sun.misc.FloatingDecimal, but can't,
                     // so we must do all this (the next 70 lines of code), which has already
                     // been done by FloatingDecimal.
@@ -1323,26 +1326,26 @@ public class Sprintf {
         // limit the length of negatives if possible (also faster)
         if (val >= Integer.MIN_VALUE && val <= Integer.MAX_VALUE) {
             if (sign) {
-                return Convert.intToByteArray((int)val,base,upper);
+                return Convert2.intToByteArray((int)val,base,upper);
             } else {
                 switch(base) {
-                case 2:  return Convert.intToBinaryBytes((int)val);
-                case 8:  return Convert.intToOctalBytes((int)val);
+                case 2:  return Convert2.intToBinaryBytes((int)val);
+                case 8:  return Convert2.intToOctalBytes((int)val);
                 case 10:
-                default: return Convert.intToCharBytes((int)val);
-                case 16: return Convert.intToHexBytes((int)val,upper);
+                default: return Convert2.intToCharBytes((int)val);
+                case 16: return Convert2.intToHexBytes((int)val,upper);
                 }
             }
         } else {
             if (sign) {
-                return Convert.longToByteArray(val,base,upper);
+                return Convert2.longToByteArray(val,base,upper);
             } else {
                 switch(base) {
-                case 2:  return Convert.longToBinaryBytes(val);
-                case 8:  return Convert.longToOctalBytes(val);
+                case 2:  return Convert2.longToBinaryBytes(val);
+                case 8:  return Convert2.longToOctalBytes(val);
                 case 10:
-                default: return Convert.longToCharBytes(val);
-                case 16: return Convert.longToHexBytes(val,upper);
+                default: return Convert2.longToCharBytes(val);
+                case 16: return Convert2.longToHexBytes(val,upper);
                 }
             }
         }
@@ -1357,9 +1360,9 @@ public class Sprintf {
         // negative values
         byte[] bytes = val.toByteArray();
         switch(base) {
-        case 2:  return Convert.twosComplementToBinaryBytes(bytes);
-        case 8:  return Convert.twosComplementToOctalBytes(bytes);
-        case 16: return Convert.twosComplementToHexBytes(bytes,upper);
+        case 2:  return Convert2.twosComplementToBinaryBytes(bytes);
+        case 8:  return Convert2.twosComplementToOctalBytes(bytes);
+        case 16: return Convert2.twosComplementToHexBytes(bytes,upper);
         default: return stringToBytes(val.toString(base),upper);
         }
     }
@@ -1377,7 +1380,7 @@ public class Sprintf {
             // relatively cheap test for 32-bit values
             longval = ((RubyFixnum)arg).getLongValue();
             if (longval >= Long.MIN_VALUE << 1) {
-                return Convert.longToCharBytes(((Long.MAX_VALUE + 1L) << 1) + longval);
+                return Convert2.longToCharBytes(((Long.MAX_VALUE + 1L) << 1) + longval);
             }
             // no such luck...
             bigval = BigInteger.valueOf(longval);

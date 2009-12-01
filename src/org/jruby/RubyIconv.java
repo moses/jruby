@@ -59,6 +59,7 @@ public class RubyIconv extends RubyObject {
 
     private CharsetDecoder fromEncoding;
     private CharsetEncoder toEncoding;
+    private int count;
 
     public RubyIconv(Ruby runtime, RubyClass type) {
         super(runtime, type);
@@ -211,9 +212,19 @@ public class RubyIconv extends RubyObject {
 
             fromEncoding = Charset.forName(getCharset(from)).newDecoder();
             toEncoding = Charset.forName(getCharset(to)).newEncoder();
+            count = 0;
 
-            if (!isIgnore(from)) fromEncoding.onUnmappableCharacter(CodingErrorAction.REPORT);
-            if (!isIgnore(to)) toEncoding.onUnmappableCharacter(CodingErrorAction.REPORT);
+            if (isIgnore(to)) {
+                fromEncoding.onUnmappableCharacter(CodingErrorAction.IGNORE);
+                fromEncoding.onMalformedInput(CodingErrorAction.IGNORE);
+                toEncoding.onUnmappableCharacter(CodingErrorAction.IGNORE);
+                toEncoding.onMalformedInput(CodingErrorAction.IGNORE);
+            } else {
+                fromEncoding.onUnmappableCharacter(CodingErrorAction.REPORT);
+                fromEncoding.onMalformedInput(CodingErrorAction.REPORT);
+                toEncoding.onUnmappableCharacter(CodingErrorAction.REPORT);
+                toEncoding.onMalformedInput(CodingErrorAction.REPORT);
+            }
         } catch (IllegalCharsetNameException e) {
             throw runtime.newInvalidEncoding("invalid encoding");
         } catch (UnsupportedCharsetException e) {
@@ -227,24 +238,26 @@ public class RubyIconv extends RubyObject {
 
     @JRubyMethod(name = "close")
     public IRubyObject close() {
+        if (toEncoding == null && fromEncoding == null)
+            return getRuntime().getNil();
         toEncoding = null;
         fromEncoding = null;
         return RubyString.newEmptyString(getRuntime());
     }
 
-    @JRubyMethod
+    @JRubyMethod(backtrace = true)
     public IRubyObject iconv(IRubyObject str) {
         return iconv(str, 0, -1);
     }
 
-    @JRubyMethod
+    @JRubyMethod(backtrace = true)
     public IRubyObject iconv(IRubyObject str, IRubyObject startArg) {
         int start = 0;
         if (!startArg.isNil()) start = RubyNumeric.fix2int(startArg);
         return iconv(str, start, -1);
     }
 
-    @JRubyMethod
+    @JRubyMethod(backtrace = true)
     public IRubyObject iconv(IRubyObject str, IRubyObject startArg, IRubyObject endArg) {
         int start = 0;
         int end = -1;
@@ -285,7 +298,7 @@ public class RubyIconv extends RubyObject {
 
     // FIXME: We are assuming that original string will be raw bytes.  If -Ku is provided
     // this will not be true, but that is ok for now.  Deal with that when someone needs it.
-    private IRubyObject _iconv(RubyString str, int start, int end) {
+    private IRubyObject _iconv(RubyString str, int start, int length) {
         if (fromEncoding == null) {
             throw getRuntime().newArgumentError("closed iconv");
         }
@@ -296,39 +309,57 @@ public class RubyIconv extends RubyObject {
         if (start < 0) {
             start += bytes.length();
         }
-        
-        if (end < 0) {
-            end += 1 + bytes.length();
-        } else if (end > bytes.length()) {
-            end = bytes.length();
-        }
-        
-        if (start < 0 || end < start) { // invalid ranges result in an empty string
+
+        if (start < 0 || start > bytes.length()) { // invalid ranges result in an empty string
             return RubyString.newEmptyString(getRuntime());
         }
+
+        if (length < 0 || length > bytes.length() - start) {
+            length = bytes.length() - start;
+        }
         
-        ByteBuffer buf = ByteBuffer.wrap(bytes.unsafeBytes(), bytes.begin() + start, end - start);
+        ByteBuffer buf = ByteBuffer.wrap(bytes.unsafeBytes(), bytes.begin() + start, length);
         
         try {
             CharBuffer cbuf = fromEncoding.decode(buf);
             buf = toEncoding.encode(cbuf);
         } catch (MalformedInputException e) {
+            throw getRuntime().newIllegalSequence(str.toString());
         } catch (UnmappableCharacterException e) {
+            throw getRuntime().newIllegalSequence(str.toString());
         } catch (CharacterCodingException e) {
             throw getRuntime().newInvalidEncoding("invalid sequence");
         } catch (IllegalStateException e) {
+            throw getRuntime().newIllegalSequence(str.toString());
         }
         byte[] arr = buf.array();
+
+        start = 0;
+        if (count > 0 && arr.length >= 2) { // minimum Byte Order Mark (BOM) length
+            if (toEncoding.charset().displayName().toLowerCase().startsWith("utf-16")) {
+                if ((arr[0] == (byte)0xfe && arr[1] == (byte)0xff) ||
+                        (arr[0] == (byte)0xff && arr[1] == (byte)0xfe)) {
+                    start = 2;
+                }
+            } else if (toEncoding.charset().displayName().toLowerCase().startsWith("utf-32")
+                    && arr.length >= 4) {
+                if ((arr[0] == (byte)0x00 && arr[1] == (byte)0x00 && arr[2] == (byte)0xfe && arr[3] == (byte)0xff) ||
+                        (arr[0] == (byte)0xff && arr[1] == (byte)0xfe && arr[2] == (byte)0x00 && arr[3] == (byte)0x00)) {
+                    start = 4;
+                }
+            }
+        }
         
-        return getRuntime().newString(new ByteList(arr, 0, buf.limit()));
+        count++;
+        return getRuntime().newString(new ByteList(arr, start, buf.limit() - start));
     }
 
-    @JRubyMethod(name = "iconv", required = 2, rest = true, meta = true)
+    @JRubyMethod(name = "iconv", required = 2, rest = true, meta = true, backtrace = true)
     public static IRubyObject iconv(ThreadContext context, IRubyObject recv, IRubyObject[] args, Block unusedBlock) {
         return convertWithArgs(context, recv, args, "iconv");
     }
     
-    @JRubyMethod(name = "conv", required = 3, rest = true, meta = true)
+    @JRubyMethod(name = "conv", required = 3, rest = true, meta = true, backtrace = true)
     public static IRubyObject conv(ThreadContext context, IRubyObject recv, IRubyObject[] args, Block unusedBlock) {
         return convertWithArgs(context, recv, args, "conv").join(context, RubyString.newEmptyString(recv.getRuntime()));
     }

@@ -72,6 +72,7 @@ public class RbConfigLibrary implements Library {
         RUBY_OS_NAMES.put("Windows XP", RUBY_WIN32);
         RUBY_OS_NAMES.put("Windows 2003", RUBY_WIN32);
         RUBY_OS_NAMES.put("Windows Vista", RUBY_WIN32);
+        RUBY_OS_NAMES.put("Windows 7", RUBY_WIN32);
         RUBY_OS_NAMES.put("Solaris", RUBY_SOLARIS);
         RUBY_OS_NAMES.put("FreeBSD", RUBY_FREEBSD);
         RUBY_OS_NAMES.put("AIX", RUBY_AIX);
@@ -161,6 +162,7 @@ public class RbConfigLibrary implements Library {
         String siteLibDir = new NormalizedFile(libdir, "ruby/site_ruby/1.8").getPath();
         String siteArchDir = new NormalizedFile(libdir, "ruby/site_ruby/1.8/java").getPath();
         String archDir = new NormalizedFile(libdir, "ruby/1.8/java").getPath();
+        String shareDir = new NormalizedFile(normalizedHome, "share").getPath();
 
         setConfig(configHash, "libdir", libdir);
         setConfig(configHash, "rubylibdir",     rubyLibDir);
@@ -170,7 +172,7 @@ public class RbConfigLibrary implements Library {
         setConfig(configHash, "archdir",   archDir);
         setConfig(configHash, "topdir",   archDir);
         setConfig(configHash, "configure_args", "");
-        setConfig(configHash, "datadir", new NormalizedFile(normalizedHome, "share").getPath());
+        setConfig(configHash, "datadir", shareDir);
         setConfig(configHash, "mandir", new NormalizedFile(normalizedHome, "man").getPath());
         setConfig(configHash, "sysconfdir", new NormalizedFile(normalizedHome, "etc").getPath());
         setConfig(configHash, "localstatedir", new NormalizedFile(normalizedHome, "var").getPath());
@@ -180,6 +182,10 @@ public class RbConfigLibrary implements Library {
             setConfig(configHash, "EXEEXT", ".exe");
         } else {
             setConfig(configHash, "EXEEXT", "");
+        }
+
+        if (runtime.is1_9()) {
+            setConfig(configHash, "ridir", new NormalizedFile(shareDir, "ri").getPath());
         }
         
         RubyHash mkmfHash = RubyHash.newHash(runtime);
@@ -268,7 +274,7 @@ public class RbConfigLibrary implements Library {
     }
 
     public static String jrubyScript() {
-        return System.getProperty("jruby.script", Platform.IS_WINDOWS ? "jruby.bat" : "jruby").replace('\\', '/');
+        return System.getProperty("jruby.script", "jruby").replace('\\', '/');
     }
 
     // TODO: note lack of command.com support for Win 9x...

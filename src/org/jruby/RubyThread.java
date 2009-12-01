@@ -37,6 +37,7 @@ import java.nio.channels.Channel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.WeakHashMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,6 +53,7 @@ import org.jruby.internal.runtime.ThreadService;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
+import org.jruby.runtime.ExecutionContext;
 import org.jruby.runtime.builtin.IRubyObject;
 
 import java.util.concurrent.ExecutionException;
@@ -73,10 +75,11 @@ import org.jruby.util.io.BlockingIO;
  * Note: For CVS history, see ThreadClass.java.
  */
 @JRubyClass(name="Thread")
-public class RubyThread extends RubyObject {
+public class RubyThread extends RubyObject implements ExecutionContext {
     private ThreadLike threadImpl;
     private RubyFixnum priority;
     private transient Map<IRubyObject, IRubyObject> threadLocalVariables;
+    private final Map<Object, IRubyObject> contextVariables = new WeakHashMap<Object, IRubyObject>();
     private boolean abortOnException;
     private IRubyObject finalResult;
     private RaiseException exitingException;
@@ -235,35 +238,39 @@ public class RubyThread extends RubyObject {
         Ruby runtime = getRuntime();
         if (!block.isGiven()) throw runtime.newThreadError("must be called with a block");
 
-        RubyRunnable runnable = new RubyRunnable(this, args, block);
-        if (RubyInstanceConfig.POOLING_ENABLED) {
-            FutureThread futureThread = new FutureThread(this, runnable);
-            threadImpl = futureThread;
+        try {
+            RubyRunnable runnable = new RubyRunnable(this, args, context.getFrames(0), block);
+            if (RubyInstanceConfig.POOLING_ENABLED) {
+                FutureThread futureThread = new FutureThread(this, runnable);
+                threadImpl = futureThread;
 
-            addToCorrectThreadGroup(context);
+                addToCorrectThreadGroup(context);
 
-            threadImpl.start();
+                threadImpl.start();
 
-            // JRUBY-2380, associate future early so it shows up in Thread.list right away, in case it doesn't run immediately
-            runtime.getThreadService().associateThread(futureThread.getFuture(), this);
-        } else {
-            Thread thread = new Thread(runnable);
-            thread.setDaemon(true);
-            threadImpl = new NativeThread(this, thread);
+                // JRUBY-2380, associate future early so it shows up in Thread.list right away, in case it doesn't run immediately
+                runtime.getThreadService().associateThread(futureThread.getFuture(), this);
+            } else {
+                Thread thread = new Thread(runnable);
+                thread.setDaemon(true);
+                threadImpl = new NativeThread(this, thread);
             
-            addToCorrectThreadGroup(context);
+                addToCorrectThreadGroup(context);
 
-            threadImpl.start();
+                threadImpl.start();
 
-            // JRUBY-2380, associate thread early so it shows up in Thread.list right away, in case it doesn't run immediately
-            runtime.getThreadService().associateThread(thread, this);
-        }
+                // JRUBY-2380, associate thread early so it shows up in Thread.list right away, in case it doesn't run immediately
+                runtime.getThreadService().associateThread(thread, this);
+            }
 
-        // We yield here to hopefully permit the target thread to schedule
-        // MRI immediately schedules it, so this is close but not exact
-        Thread.yield();
+            // We yield here to hopefully permit the target thread to schedule
+            // MRI immediately schedules it, so this is close but not exact
+            Thread.yield();
         
-        return this;
+            return this;
+        } catch (SecurityException ex) {
+          throw runtime.newThreadError(ex.getMessage());
+        }
     }
     
     private static RubyThread startThread(final IRubyObject recv, final IRubyObject[] args, boolean callInit, Block block) {
@@ -285,6 +292,10 @@ public class RubyThread extends RubyObject {
 
     public synchronized void beDead() {
         status = status.DEAD;
+        try {
+            if (selector != null) selector.close();
+        } catch (IOException ioe) {
+        }
     }
 
     public void pollThreadEvents() {
@@ -379,6 +390,14 @@ public class RubyThread extends RubyObject {
         return threadLocalVariables;
     }
 
+    public final Map<Object, IRubyObject> getContextVariables() {
+        return contextVariables;
+    }
+
+    public boolean isAlive(){
+        return threadImpl.isAlive() && status != Status.ABORTING;
+    }
+
     @JRubyMethod(name = "[]", required = 1)
     public IRubyObject op_aref(IRubyObject key) {
         IRubyObject value;
@@ -409,7 +428,7 @@ public class RubyThread extends RubyObject {
 
     @JRubyMethod(name = "alive?")
     public RubyBoolean alive_p() {
-        return threadImpl.isAlive() && status != Status.ABORTING ? getRuntime().getTrue() : getRuntime().getFalse();
+        return isAlive() ? getRuntime().getTrue() : getRuntime().getFalse();
     }
 
     @JRubyMethod(name = "join", optional = 1, backtrace = true)
@@ -486,7 +505,7 @@ public class RubyThread extends RubyObject {
 	}
     }
 
-    @JRubyMethod(name = "value")
+    @JRubyMethod(name = "value", frame = true)
     public IRubyObject value() {
         join(new IRubyObject[0]);
         synchronized (this) {
@@ -593,6 +612,11 @@ public class RubyThread extends RubyObject {
     
     @JRubyMethod(name = "wakeup")
     public synchronized RubyThread wakeup() {
+        if(!threadImpl.isAlive() && status == Status.DEAD) {
+            throw getRuntime().newThreadError("killed thread");
+        }
+
+        status = Status.RUN;
         notifyAll();
     	
     	return this;
@@ -698,9 +722,7 @@ public class RubyThread extends RubyObject {
     
     @JRubyMethod(name = "run")
     public synchronized IRubyObject run() {
-        notifyAll();
-    	
-    	return this;
+        return wakeup();
     }
 
     /**
@@ -718,6 +740,7 @@ public class RubyThread extends RubyObject {
                 status = Status.SLEEP;
                 wait(millis);
             } finally {
+                result = (status != Status.RUN);
                 pollThreadEvents();
                 status = Status.RUN;
             }
@@ -825,23 +848,33 @@ public class RubyThread extends RubyObject {
     public boolean selectForAccept(RubyIO io) {
         return select(io, SelectionKey.OP_ACCEPT);
     }
+
+    private volatile Selector selector;
+
+    private synchronized Selector getSelector(SelectableChannel channel) throws IOException {
+        if (selector == null) selector = Selector.open();
+        return selector;
+    }
     
     public boolean select(RubyIO io, int ops) {
-        Channel channel = io.getChannel();
-        
+        return select(io.getChannel(), io, ops);
+    }
+
+    public boolean select(Channel channel, RubyIO io, int ops) {
         if (channel instanceof SelectableChannel) {
             SelectableChannel selectable = (SelectableChannel)channel;
             
             synchronized (selectable.blockingLock()) {
                 boolean oldBlocking = selectable.isBlocking();
 
+                SelectionKey key = null;
                 try {
                     selectable.configureBlocking(false);
                     
-                    io.addBlockingThread(this);
-                    currentSelector = selectable.provider().openSelector();
+                    if (io != null) io.addBlockingThread(this);
+                    currentSelector = getSelector(selectable);
 
-                    SelectionKey key = selectable.register(currentSelector, ops);
+                    key = selectable.register(currentSelector, ops);
 
                     beforeBlockingCall();
                     int result = currentSelector.select();
@@ -859,19 +892,16 @@ public class RubyThread extends RubyObject {
 
                     return false;
                 } catch (IOException ioe) {
-                    throw io.getRuntime().newRuntimeError("Error with selector: " + ioe);
+                    throw getRuntime().newRuntimeError("Error with selector: " + ioe);
                 } finally {
-                    afterBlockingCall();
-                    if (currentSelector != null) {
-                        try {
-                            currentSelector.close();
-                        } catch (IOException ioe) {
-                            throw io.getRuntime().newRuntimeError("Could not close selector");
-                        }
-                    }
-                    currentSelector = null;
-                    io.removeBlockingThread(this);
                     try {
+                        if (key != null) {
+                            key.cancel();
+                            currentSelector.selectNow();
+                        }
+                        afterBlockingCall();
+                        currentSelector = null;
+                        if (io != null) io.removeBlockingThread(this);
                         selectable.configureBlocking(oldBlocking);
                     } catch (IOException ioe) {
                         // ignore; I don't like doing it, but it seems like we

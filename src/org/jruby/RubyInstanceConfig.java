@@ -40,8 +40,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+
 import org.jruby.ast.executable.Script;
 import org.jruby.compiler.ASTCompiler;
 import org.jruby.compiler.ASTCompiler19;
@@ -65,7 +67,7 @@ public class RubyInstanceConfig {
     /**
      * The max size of JIT-compiled methods (full class size) allowed.
      */
-    private static final int JIT_MAX_SIZE_LIMIT = Integer.MAX_VALUE;
+    private static final int JIT_MAX_SIZE_LIMIT = 10000;
 
     /**
      * The JIT threshold to the specified method invocation count.
@@ -219,6 +221,24 @@ public class RubyInstanceConfig {
             = SafePropertyAccessor.getProperty("jruby.jit.exclude");
     public static boolean nativeEnabled = true;
 
+    public static final boolean REIFY_RUBY_CLASSES
+            = SafePropertyAccessor.getBoolean("jruby.reify.classes", false);
+
+    public static final boolean USE_GENERATED_HANDLES
+            = SafePropertyAccessor.getBoolean("jruby.java.handles", false);
+
+    public static final boolean DEBUG_LOAD_SERVICE
+            = SafePropertyAccessor.getBoolean("jruby.debug.loadService", false);
+
+    public static final boolean DEBUG_LOAD_TIMINGS
+            = SafePropertyAccessor.getBoolean("jruby.debug.loadService.timing", false);
+
+    public static final boolean DEBUG_LAUNCHING
+            = SafePropertyAccessor.getBoolean("jruby.debug.launch", false);
+
+    public static final boolean JUMPS_HAVE_BACKTRACE
+            = SafePropertyAccessor.getBoolean("jruby.jump.backtrace", false);
+
     public static interface LoadServiceCreator {
         LoadService create(Ruby runtime);
 
@@ -256,23 +276,37 @@ public class RubyInstanceConfig {
 
     public int characterIndex = 0;
 
-    public RubyInstanceConfig() {
-        if (Ruby.isSecurityRestricted())
-            currentDirectory = "/";
-        else {
-            currentDirectory = JRubyFile.getFileProperty("user.dir");
-        }
+    public RubyInstanceConfig(RubyInstanceConfig parentConfig) {
+        setCurrentDirectory(parentConfig.getCurrentDirectory());
+        samplingEnabled = parentConfig.samplingEnabled;
+        compatVersion = parentConfig.compatVersion;
+        compileMode = parentConfig.getCompileMode();
+        jitLogging = parentConfig.jitLogging;
+        jitLoggingVerbose = parentConfig.jitLoggingVerbose;
+        jitLogEvery = parentConfig.jitLogEvery;
+        jitThreshold = parentConfig.jitThreshold;
+        jitMax = parentConfig.jitMax;
+        jitMaxSize = parentConfig.jitMaxSize;
+        managementEnabled = parentConfig.managementEnabled;
+        runRubyInProcess = parentConfig.runRubyInProcess;
+        excludedMethods = parentConfig.excludedMethods;
+        threadDumpSignal = parentConfig.threadDumpSignal;
+        
+        classCache = new ClassCache<Script>(loader, jitMax);
+    }
 
+    public RubyInstanceConfig() {
+        setCurrentDirectory(Ruby.isSecurityRestricted() ? "/" : JRubyFile.getFileProperty("user.dir"));
         samplingEnabled = SafePropertyAccessor.getBoolean("jruby.sampling.enabled", false);
+
         String compatString = SafePropertyAccessor.getProperty("jruby.compat.version", "RUBY1_8");
         if (compatString.equalsIgnoreCase("RUBY1_8")) {
-            compatVersion = CompatVersion.RUBY1_8;
+            setCompatVersion(CompatVersion.RUBY1_8);
         } else if (compatString.equalsIgnoreCase("RUBY1_9")) {
-            compatVersion = CompatVersion.RUBY1_9;
-            compileMode = compileMode.OFF;
+            setCompatVersion(CompatVersion.RUBY1_9);
         } else {
             error.println("Compatibility version `" + compatString + "' invalid; use RUBY1_8 or RUBY1_9. Using RUBY1_8.");
-            compatVersion = CompatVersion.RUBY1_8;
+            setCompatVersion(CompatVersion.RUBY1_8);
         }
 
         if (Ruby.isSecurityRestricted()) {
@@ -351,7 +385,7 @@ public class RubyInstanceConfig {
         StringBuilder sb = new StringBuilder();
         sb
                 .append("Usage: jruby [switches] [--] [programfile] [arguments]\n")
-                .append("  -0[octal]       specify record separator (\0, if no argument)\n")
+                .append("  -0[octal]       specify record separator (\\0, if no argument)\n")
                 .append("  -a              autosplit mode with -n or -p (splits $_ into $F)\n")
                 .append("  -b              benchmark mode, times the script execution\n")
                 .append("  -c              check syntax only\n")
@@ -364,7 +398,7 @@ public class RubyInstanceConfig {
                 .append("  -J[java option] pass an option on to the JVM (e.g. -J-Xmx512m)\n")
                 .append("                    use --properties to list JRuby properties\n")
                 .append("                    run 'java -help' for a list of other Java options\n")
-                .append("  -Kkcode         specifies code-set (e.g. -Ku for Unicode\n")
+                .append("  -Kkcode         specifies code-set (e.g. -Ku for Unicode, -Ke for EUC and -Ks for SJIS)\n")
                 .append("  -l              enable line ending processing\n")
                 .append("  -n              assume 'while gets(); ... end' loop around your script\n")
                 .append("  -p              assume loop like -n but print line also like sed\n")
@@ -479,6 +513,15 @@ public class RubyInstanceConfig {
                 .append("       Set bytecode version for JRuby to generate. Default is current JVM version.\n")
                 .append("    jruby.management.enabled=true|false\n")
                 .append("       Set whether JMX management is enabled. Default is true.\n")
+                .append("    jruby.jump.backtrace=true|false\n")
+                .append("       Make non-local flow jumps generate backtraces. Default is false.\n")
+                .append("\nDEBUGGING/LOGGING:\n")
+                .append("    jruby.debug.loadService=true|false\n")
+                .append("       LoadService logging\n")
+                .append("    jruby.debug.loadService.timing=true|false\n")
+                .append("       Print load timings for each require'd library. Default is false.\n")
+                .append("    jruby.debug.launch=true|false\n")
+                .append("       ShellLauncher logging\n")
                 .append("    jruby.debug.fullTrace=true|false\n")
                 .append("       Set whether full traces are enabled (c-call/c-return). Default is false.\n");
 
@@ -487,21 +530,24 @@ public class RubyInstanceConfig {
 
     public String getVersionString() {
         String ver = null;
+        String patchDelimeter = null;
         int patchlevel = 0;
-        switch (compatVersion) {
+        switch (getCompatVersion()) {
         case RUBY1_8:
             ver = Constants.RUBY_VERSION;
             patchlevel = Constants.RUBY_PATCHLEVEL;
+            patchDelimeter = " patchlevel ";
             break;
         case RUBY1_9:
             ver = Constants.RUBY1_9_VERSION;
             patchlevel = Constants.RUBY1_9_PATCHLEVEL;
+            patchDelimeter = " trunk ";
             break;
         }
 
         String fullVersion = String.format(
-                "jruby %s (ruby %sp%d) (%s %s) (%s %s) [%s-java]",
-                Constants.VERSION, ver, patchlevel,
+                "jruby %s (ruby %s%s%d) (%s %s) (%s %s) [%s-java]",
+                Constants.VERSION, ver, patchDelimeter, patchlevel,
                 Constants.COMPILE_DATE, Constants.REVISION,
                 System.getProperty("java.vm.name"), System.getProperty("java.version"),
                 SafePropertyAccessor.getProperty("os.arch", "unknown")
@@ -511,11 +557,25 @@ public class RubyInstanceConfig {
     }
 
     public String getCopyrightString() {
-        return "JRuby - Copyright (C) 2001-2008 The JRuby Community (and contribs)";
+        return "JRuby - Copyright (C) 2001-2009 The JRuby Community (and contribs)";
     }
 
     public void processArguments(String[] arguments) {
         new ArgumentProcessor(arguments).processArguments();
+        try {
+            String rubyopt = System.getenv("RUBYOPT");
+            if (rubyopt != null) {
+                String[] rubyoptArgs = rubyopt.split("\\s+");
+                for (int i = 0; i < rubyoptArgs.length; i++) {
+                    if (!rubyoptArgs[i].startsWith("-")) {
+                        rubyoptArgs[i] = "-" + rubyoptArgs[i];
+                    }
+                }
+                new ArgumentProcessor(rubyoptArgs, false).processArguments();
+            }
+        } catch (SecurityException se) {
+            // ignore and do nothing
+        }
     }
 
     public CompileMode getCompileMode() {
@@ -575,6 +635,10 @@ public class RubyInstanceConfig {
     }
 
     public void setCompatVersion(CompatVersion compatVersion) {
+        // Until we get a little more solid on 1.9 support we will only run interpreted mode
+        if (compatVersion == CompatVersion.RUBY1_9) compileMode = CompileMode.OFF;
+        if (compatVersion == null) compatVersion = CompatVersion.RUBY1_8;
+
         this.compatVersion = compatVersion;
     }
 
@@ -702,9 +766,15 @@ public class RubyInstanceConfig {
     private class ArgumentProcessor {
         private String[] arguments;
         private int argumentIndex = 0;
+        private boolean processArgv;
 
         public ArgumentProcessor(String[] arguments) {
+            this(arguments, true);
+        }
+
+        public ArgumentProcessor(String[] arguments, boolean processArgv) {
             this.arguments = arguments;
+            this.processArgv = processArgv;
         }
 
         public void processArguments() {
@@ -720,7 +790,7 @@ public class RubyInstanceConfig {
                 }
             }
 
-            processArgv();
+            if (processArgv) processArgv();
         }
 
         private void processArgv() {
@@ -742,6 +812,7 @@ public class RubyInstanceConfig {
             }
 
             // Remaining arguments are for the script itself
+            for (String arg : argv) arglist.add(arg);
             argv = arglist.toArray(new String[arglist.size()]);
         }
 
@@ -798,15 +869,13 @@ public class RubyInstanceConfig {
                         }
                         if (!(new File(currentDirectory).isDirectory())) {
                             MainExitException mee = new MainExitException(1, "jruby: Can't chdir to " + saved + " (fatal)");
-                            mee.setUsageError(true);
                             throw mee;
                         }
                     } catch (IOException e) {
                         MainExitException mee = new MainExitException(1, getArgumentError(" -C must be followed by a valid directory"));
-                        mee.setUsageError(true);
                         throw mee;
                     }
-                    break;
+                    break FOR;
                 case 'd':
                     debug = true;
                     verbose = Boolean.TRUE;
@@ -948,22 +1017,14 @@ public class RubyInstanceConfig {
                         break;
                     } else if (argument.equals("--compat")) {
                         characterIndex = argument.length();
-                        compatVersion = CompatVersion.getVersionFromString(grabValue(getArgumentError("--compat must be RUBY1_8 or RUBY1_9")));
-                        if (compatVersion == CompatVersion.RUBY1_9) {
-                            compileMode = compileMode.OFF;
-                        }
-                        if (compatVersion == null) {
-                            compatVersion = CompatVersion.RUBY1_8;
-                        }
+                        setCompatVersion(CompatVersion.getVersionFromString(grabValue(getArgumentError("--compat must be RUBY1_8 or RUBY1_9"))));
                         break FOR;
                     } else if (argument.equals("--copyright")) {
                         setShowCopyright(true);
                         shouldRunInterpreter = false;
                         break FOR;
                     } else if (argument.equals("--debug")) {
-                        compileMode = CompileMode.OFF;
                         FULL_TRACE_ENABLED = true;
-                        System.setProperty("jruby.reflection", "true");
                         break FOR;
                     } else if (argument.equals("--jdb")) {
                         debug = true;
@@ -991,7 +1052,14 @@ public class RubyInstanceConfig {
                         POSITIONLESS_COMPILE_ENABLED = true;
                         FASTCASE_COMPILE_ENABLED = true;
                         FASTSEND_COMPILE_ENABLED = true;
-                        RubyException.TRACE_TYPE = RubyException.RAW;
+                        INLINE_DYNCALL_ENABLED = true;
+                        RubyException.TRACE_TYPE = RubyException.RUBY_COMPILED;
+                        break FOR;
+                    } else if (argument.equals("--1.9")) {
+                        setCompatVersion(CompatVersion.RUBY1_9);
+                        break FOR;
+                    } else if (argument.equals("--1.8")) {
+                        setCompatVersion(CompatVersion.RUBY1_8);
                         break FOR;
                     } else {
                         if (argument.equals("--")) {
@@ -1042,15 +1110,19 @@ public class RubyInstanceConfig {
                     return fullName.getAbsolutePath();
                 }
 
-                String path = System.getenv("PATH");
-                if (path != null) {
-                    String[] paths = path.split(System.getProperty("path.separator"));
-                    for (int i = 0; i < paths.length; i++) {
-                        fullName = JRubyFile.create(paths[i], scriptName);
-                        if (fullName.exists() && fullName.isFile()) {
-                            return fullName.getAbsolutePath();
+                try {
+                    String path = System.getenv("PATH");
+                    if (path != null) {
+                        String[] paths = path.split(System.getProperty("path.separator"));
+                        for (int i = 0; i < paths.length; i++) {
+                            fullName = JRubyFile.create(paths[i], scriptName);
+                            if (fullName.exists() && fullName.isFile()) {
+                                return fullName.getAbsolutePath();
+                            }
                         }
                     }
+                } catch (SecurityException se) {
+                    // ignore and do nothing
                 }
             } catch (IllegalArgumentException iae) {
                 if (debug) System.err.println("warning: could not resolve -S script on filesystem: " + scriptName);
@@ -1135,8 +1207,36 @@ public class RubyInstanceConfig {
                 return new BufferedInputStream(new FileInputStream(file), 8192);
             }
         } catch (IOException e) {
+            // We haven't found any file directly on the file system,
+            // now check for files inside the JARs.
+            InputStream is = getJarScriptSource();
+            if (is != null) {
+                return new BufferedInputStream(is, 8129);
+            }
             throw new MainExitException(1, "Error opening script file: " + e.getMessage());
         }
+    }
+
+    private InputStream getJarScriptSource() {
+        String name = getScriptFileName();
+        boolean looksLikeJarURL = name.startsWith("file:") && name.indexOf("!/") != -1;
+        if (!looksLikeJarURL) {
+            return null;
+        }
+
+        String before = name.substring("file:".length(), name.indexOf("!/"));
+        String after =  name.substring(name.indexOf("!/") + 2);
+
+        try {
+            JarFile jFile = new JarFile(before);
+            JarEntry entry = jFile.getJarEntry(after);
+
+            if (entry != null && !entry.isDirectory()) {
+                return jFile.getInputStream(entry);
+            }
+        } catch (IOException ignored) {
+        }
+        return null;
     }
 
     public String displayedFileName() {
@@ -1274,7 +1374,7 @@ public class RubyInstanceConfig {
     }
 
     public ASTCompiler newCompiler() {
-        if (compatVersion == CompatVersion.RUBY1_8) {
+        if (getCompatVersion() == CompatVersion.RUBY1_8) {
             return new ASTCompiler();
         } else {
             return new ASTCompiler19();

@@ -272,24 +272,11 @@ public class ChannelStream implements Stream, Finalizable {
         return buf;
     }
     
-    /**
-     * An version of read that reads all bytes up to and including a terminator byte.
-     * <p>
-     * If the terminator byte is found, it will be the last byte in the output buffer.
-     * </p>
-     *
-     * @param dst The output buffer.
-     * @param terminator The byte to terminate reading.
-     * @return The number of bytes read, or -1 if EOF is reached.
-     * 
-     * @throws java.io.IOException
-     * @throws org.jruby.util.io.BadDescriptorException
-     */
     public synchronized int getline(ByteList dst, byte terminator) throws IOException, BadDescriptorException {
         checkReadable();
         ensureRead();
         descriptor.checkOpen();
-        
+
         int totalRead = 0;
         boolean found = false;
         if (ungotc != -1) {
@@ -323,29 +310,103 @@ public class ChannelStream implements Stream, Finalizable {
         }
         return totalRead;
     }
+
+    public synchronized int getline(ByteList dst, byte terminator, long limit) throws IOException, BadDescriptorException {
+        checkReadable();
+        ensureRead();
+        descriptor.checkOpen();
+        
+        int totalRead = 0;
+        boolean found = false;
+        if (ungotc != -1) {
+            dst.append((byte) ungotc);
+            found = ungotc == terminator;
+            ungotc = -1;
+            limit--;
+            ++totalRead;
+        }
+        while (!found) {
+            final byte[] bytes = buffer.array();
+            final int begin = buffer.arrayOffset() + buffer.position();
+            final int end = begin + buffer.remaining();
+            int len = 0;
+            for (int i = begin; i < end && limit-- > 0 && !found; ++i) {
+                found = bytes[i] == terminator;
+                ++len;
+            }
+            if (limit < 1) found = true;
+
+            if (len > 0) {
+                dst.append(buffer, len);
+                totalRead += len;
+            }
+            if (!found) {
+                int n = refillBuffer();
+                if (n <= 0) {
+                    if (n < 0 && totalRead < 1) {
+                        return -1;
+                    }
+                    break;
+                }
+            }
+        }
+        return totalRead;
+    }
     
     public synchronized ByteList readall() throws IOException, BadDescriptorException {
-        if (descriptor.isSeekable()) {
-            invalidateBuffer();
+        final long fileSize = descriptor.isSeekable() && descriptor.getChannel() instanceof FileChannel
+                ? ((FileChannel) descriptor.getChannel()).size() : 0;
+        //
+        // Check file size - special files in /proc have zero size and need to be
+        // handled by the generic read path.
+        //
+        if (fileSize > 0) {
+            ensureRead();
+            
             FileChannel channel = (FileChannel)descriptor.getChannel();
-            long left = channel.size() - channel.position();
+            final long left = fileSize - channel.position() + bufferedBytesAvailable();
             if (left <= 0) {
                 eof = true;
                 return null;
             }
-            left += ungotc != -1 ? 1 : 0;
+
+            if (left > Integer.MAX_VALUE) {
+                if (getRuntime() != null) {
+                    throw getRuntime().newIOError("File too large");
+                } else {
+                    throw new IOException("File too large");
+                }
+            }
+
             ByteList result = new ByteList((int) left);
             ByteBuffer buf = ByteBuffer.wrap(result.unsafeBytes(), 
                     result.begin(), (int) left);
-            if (ungotc != -1) {
-                buf.put((byte) ungotc);
-                ungotc = -1;
-            }
+            
+            //
+            // Copy any buffered data (including ungetc byte)
+            //
+            copyBufferedBytes(buf);
+            
+            //
+            // Now read unbuffered directly from the file
+            //
             while (buf.hasRemaining()) {
-                int n = ((ReadableByteChannel) descriptor.getChannel()).read(buf);
+                final int MAX_READ_CHUNK = 1 * 1024 * 1024;
+                //
+                // When reading into a heap buffer, the jvm allocates a temporary
+                // direct ByteBuffer of the requested size.  To avoid allocating
+                // a huge direct buffer when doing ludicrous reads (e.g. 1G or more)
+                // we split the read up into chunks of no more than 1M
+                //
+                ByteBuffer tmp = buf.duplicate();
+                if (tmp.remaining() > MAX_READ_CHUNK) {
+                    tmp.limit(tmp.position() + MAX_READ_CHUNK);
+                }
+                int n = channel.read(tmp);
                 if (n <= 0) {
                     break;
                 }
+                buf.position(tmp.position());
             }
             eof = true;
             result.length(buf.position());
@@ -371,7 +432,81 @@ public class ChannelStream implements Stream, Finalizable {
             return byteList;
         } 
     }
+
+    /**
+     * Copies bytes from the channel buffer into a destination <tt>ByteBuffer</tt>
+     *
+     * @param dst A <tt>ByteBuffer</tt> to place the data in.
+     * @return The number of bytes copied.
+     */
+    private final int copyBufferedBytes(ByteBuffer dst) {
+        final int bytesToCopy = dst.remaining();
+
+        if (ungotc != -1 && dst.hasRemaining()) {
+            dst.put((byte) ungotc);
+            ungotc = -1;
+        }
+        
+        if (buffer.hasRemaining() && dst.hasRemaining()) {
+
+            if (dst.remaining() >= buffer.remaining()) {
+                //
+                // Copy out any buffered bytes
+                //
+                dst.put(buffer);
+
+            } else {
+                //
+                // Need to clamp source (buffer) size to avoid overrun
+                //
+                ByteBuffer tmp = buffer.duplicate();
+                tmp.limit(dst.remaining());
+                dst.put(tmp);
+            }
+        }
+
+        return bytesToCopy - dst.remaining();
+    }
+
+    /**
+     * Copies bytes from the channel buffer into a destination <tt>ByteBuffer</tt>
+     *
+     * @param dst A <tt>ByteList</tt> to place the data in.
+     * @param len The maximum number of bytes to copy.
+     * @return The number of bytes copied.
+     */
+    private final int copyBufferedBytes(ByteList dst, int len) {
+        int bytesCopied = 0;
+
+        dst.ensure(Math.min(len, bufferedBytesAvailable()));
+
+        if (bytesCopied < len && ungotc != -1) {
+            ++bytesCopied;
+            dst.append((byte) ungotc);            
+            ungotc = -1;
+        }
+
+        //
+        // Copy out any buffered bytes
+        //
+        if (bytesCopied < len && buffer.hasRemaining()) {
+            int n = Math.min(buffer.remaining(), len - bytesCopied);
+            dst.append(buffer, n);
+            bytesCopied += n;
+        }
+
+        return bytesCopied;
+    }
     
+    /**
+     * Returns a count of how many bytes are available in the read buffer
+     * 
+     * @return The number of bytes that can be read without reading the underlying stream.
+     */
+    private final int bufferedBytesAvailable() {
+        return buffer.remaining() + (reading && ungotc != -1 ? 1 : 0);
+    }
+
     /**
      * <p>Close IO handler resources.</p>
      * @throws IOException 
@@ -606,7 +741,7 @@ public class ChannelStream implements Stream, Finalizable {
     /**
      * @see org.jruby.util.IOHandler#sync()
      */
-    public void sync() throws IOException, BadDescriptorException {
+    public synchronized void sync() throws IOException, BadDescriptorException {
         flushWrite();
     }
 
@@ -685,24 +820,49 @@ public class ChannelStream implements Stream, Finalizable {
     private ByteList bufferedRead(int number) throws IOException, BadDescriptorException {
         checkReadable();
         ensureRead();
-        
-        ByteList result = new ByteList(0);
-        
-        int len = -1;
-        if (buffer.hasRemaining()) { // already have some bytes buffered
-            len = (number <= buffer.remaining()) ? number : buffer.remaining();
-            result.append(buffer, len);
+
+        int resultSize = 0;
+
+        // 128K seems to be the minimum at which the stat+seek is faster than reallocation
+        final int BULK_THRESHOLD = 128 * 1024; 
+        if (number >= BULK_THRESHOLD && descriptor.isSeekable() && descriptor.getChannel() instanceof FileChannel) {
+            //
+            // If it is a file channel, then we can pre-allocate the output buffer
+            // to the total size of buffered + remaining bytes in file
+            //
+            FileChannel fileChannel = (FileChannel) descriptor.getChannel();
+            resultSize = (int) Math.min(fileChannel.size() - fileChannel.position() + bufferedBytesAvailable(), number);
+        } else {
+            //
+            // Cannot discern the total read length - allocate at least enough for the buffered data
+            //
+            resultSize = Math.min(bufferedBytesAvailable(), number);
         }
+
+        ByteList result = new ByteList(resultSize);
+        bufferedRead(result, number);
+        return result;
+    }
+
+    private int bufferedRead(ByteList dst, int number) throws IOException, BadDescriptorException {
+  
+        int bytesRead = 0;
+        
+        //
+        // Copy what is in the buffer, if there is some buffered data
+        //
+        bytesRead += copyBufferedBytes(dst, number);
+        
         boolean done = false;
         //
         // Avoid double-copying for reads that are larger than the buffer size
         //
-        while ((number - result.length()) >= BUFSIZE) {
+        while ((number - bytesRead) >= BUFSIZE) {
             //
             // limit each iteration to a max of BULK_READ_SIZE to avoid over-size allocations
             //
-            int bytesToRead = Math.min(BULK_READ_SIZE, number - result.length());
-            int n = descriptor.read(bytesToRead, result);
+            final int bytesToRead = Math.min(BULK_READ_SIZE, number - bytesRead);
+            final int n = descriptor.read(bytesToRead, dst);
             if (n == -1) {
                 eof = true;
                 done = true;
@@ -711,12 +871,13 @@ public class ChannelStream implements Stream, Finalizable {
                 done = true;
                 break;
             }
+            bytesRead += n;
         }
         
         //
         // Complete the request by filling the read buffer first
         //
-        while (!done && result.length() != number) {
+        while (!done && bytesRead < number) {
             int read = refillBuffer();
             
             if (read == -1) {
@@ -727,19 +888,89 @@ public class ChannelStream implements Stream, Finalizable {
             }
             
             // append what we read into our buffer and allow the loop to continue
-            int desired = number - result.length();
-            len = (desired < read) ? desired : read;
-            result.append(buffer, len);
+            final int len = Math.min(buffer.remaining(), number - bytesRead);
+            dst.append(buffer, len);
+            bytesRead += len;
         }
         
-        if (result.length() == 0 && number != 0) {
+        if (bytesRead == 0 && number != 0) {
             if (eof) {
                 throw new EOFException();
             }
         }
-        return result;
+
+        return bytesRead;
     }
-    
+
+    private int bufferedRead(ByteBuffer dst, boolean partial) throws IOException, BadDescriptorException {
+        checkReadable();
+        ensureRead();
+
+        boolean done = false;
+        int bytesRead = 0;
+
+        //
+        // Copy what is in the buffer, if there is some buffered data
+        //
+        bytesRead += copyBufferedBytes(dst);
+        
+        //
+        // Avoid double-copying for reads that are larger than the buffer size, or
+        // the destination is a direct buffer.
+        //
+        while ((bytesRead < 1 || !partial) && (dst.remaining() >= BUFSIZE || dst.isDirect())) {
+            ByteBuffer tmpDst = dst;
+            if (!dst.isDirect()) {
+                //
+                // We limit reads to BULK_READ_SIZED chunks to avoid NIO allocating
+                // a huge temporary native buffer, when doing reads into a heap buffer
+                // If the dst buffer is direct, then no need to limit.
+                //
+                int bytesToRead = Math.min(BULK_READ_SIZE, dst.remaining());
+                if (bytesToRead < dst.remaining()) {
+                    tmpDst = dst.duplicate();
+                    tmpDst.limit(bytesToRead);
+                }
+            }
+            int n = descriptor.read(tmpDst);
+            if (n == -1) {
+                eof = true;
+                done = true;
+                break;
+            } else if (n == 0) {
+                done = true;
+                break;
+            } else {
+                bytesRead += n;
+            }
+        }
+
+        //
+        // Complete the request by filling the read buffer first
+        //
+        while (!done && dst.hasRemaining() && (bytesRead < 1 || !partial)) {
+            int read = refillBuffer();
+
+            if (read == -1) {
+                eof = true;
+                done = true;
+                break;
+            } else if (read == 0) {
+                done = true;
+                break;
+            } else {
+                // append what we read into our buffer and allow the loop to continue
+                bytesRead += copyBufferedBytes(dst);
+            }
+        }
+
+        if (eof && bytesRead == 0 && dst.remaining() != 0) {
+            throw new EOFException();
+        }
+
+        return bytesRead;
+    }
+
     private int bufferedRead() throws IOException, BadDescriptorException {
         ensureRead();
         
@@ -781,7 +1012,7 @@ public class ChannelStream implements Stream, Finalizable {
             buffer.put(buf.unsafeBytes(), buf.begin(), buf.length());
         }
         
-        if (isSync()) sync();
+        if (isSync()) flushWrite();
         
         return buf.realSize;
     }
@@ -799,7 +1030,7 @@ public class ChannelStream implements Stream, Finalizable {
         
         buffer.put((byte) c);
             
-        if (isSync()) sync();
+        if (isSync()) flushWrite();
             
         return 1;
     }
@@ -952,6 +1183,7 @@ public class ChannelStream implements Stream, Finalizable {
             return descriptor.write(ByteBuffer.wrap(buf.unsafeBytes(), buf.begin(), buf.length()));
         }
     }
+
     public synchronized ByteList fread(int number) throws IOException, BadDescriptorException {
         try {
             if (number == 0) {
@@ -962,20 +1194,13 @@ public class ChannelStream implements Stream, Finalizable {
                 }
             }
 
-            if (ungotc >= 0) {
-                ByteList buf2 = bufferedRead(number - 1);
-                buf2.prepend((byte)ungotc);
-                ungotc = -1;
-                return buf2;
-            }
-
             return bufferedRead(number);
         } catch (EOFException e) {
             eof = true;
             return null;
         }
     }
-
+    
     public synchronized ByteList readnonblock(int number) throws IOException, BadDescriptorException, EOFException {
         assert number >= 0;
 
@@ -1010,30 +1235,24 @@ public class ChannelStream implements Stream, Finalizable {
         if (descriptor.getChannel() instanceof FileChannel) {
             return fread(number);
         }
-        // make sure that the ungotc is not forgotten
-        if (ungotc >= 0) {
-            number--;
-            if (number == 0 || !buffer.hasRemaining()) {
-                ByteList result = new ByteList(new byte[] {(byte)ungotc}, false);
-                ungotc = -1;
-                return result;
-            }
-        }
 
-        if (buffer.hasRemaining()) {
+        if (bufferedBytesAvailable() > 0) {
             // already have some bytes buffered, just return those
-
-            ByteList result = bufferedRead(Math.min(buffer.remaining(), number));
-
-            if (ungotc >= 0) {
-                result.prepend((byte)ungotc);
-                ungotc = -1;
-            }
-            return result;
+            return bufferedRead(Math.min(bufferedBytesAvailable(), number));
         } else {
             // otherwise, we try an unbuffered read to get whatever's available
             return read(number);
         }        
+    }
+
+    public synchronized int read(ByteBuffer dst) throws IOException, BadDescriptorException, EOFException {
+        return read(dst, !(descriptor.getChannel() instanceof FileChannel));
+    }
+    
+    public synchronized int read(ByteBuffer dst, boolean partial) throws IOException, BadDescriptorException, EOFException {
+        assert dst.hasRemaining();
+
+        return bufferedRead(dst, partial);
     }
 
     public synchronized int read() throws IOException, BadDescriptorException {

@@ -59,6 +59,7 @@ import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.Visibility;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.IdUtil;
+import org.jruby.runtime.marshal.DataType;
 
 /**
  * RubyObject is the only implementation of the
@@ -87,6 +88,18 @@ import org.jruby.util.IdUtil;
  */
 @JRubyClass(name="Object", include="Kernel")
 public class RubyObject extends RubyBasicObject {
+    // Equivalent of T_DATA
+    public static class Data extends RubyObject implements DataType {
+        public Data(Ruby runtime, RubyClass metaClass, Object data) {
+            super(runtime, metaClass);
+            dataWrapStruct(data);
+        }
+
+        public Data(RubyClass metaClass, Object data) {
+            super(metaClass);
+            dataWrapStruct(data);
+        }
+    }
 
     /**
      * Standard path for object creation. Objects are entered into ObjectSpace
@@ -445,13 +458,6 @@ public class RubyObject extends RubyBasicObject {
         try {
             IRubyObject valueInYield;
             boolean aValue;
-            if (args.length == 1) {
-                valueInYield = args[0];
-                aValue = false;
-            } else {
-                valueInYield = RubyArray.newArrayNoCopy(context.getRuntime(), args);
-                aValue = true;
-            }
 
             // FIXME: This is an ugly hack to resolve JRUBY-1381; I'm not proud of it
             block = block.cloneBlock();
@@ -459,7 +465,13 @@ public class RubyObject extends RubyBasicObject {
             block.getBinding().getFrame().setSelf(RubyObject.this);
             // end hack
 
-            return block.yield(context, valueInYield, RubyObject.this, context.getRubyClass(), aValue);
+            if (args.length == 1) {
+                valueInYield = args[0];
+                return block.yieldNonArray(context, valueInYield, RubyObject.this, context.getRubyClass());
+            } else {
+                valueInYield = RubyArray.newArrayNoCopy(context.getRuntime(), args);
+                return block.yieldArray(context, valueInYield, RubyObject.this, context.getRubyClass());
+            }
             //TODO: Should next and return also catch here?
         } catch (JumpException.BreakJump bj) {
             return (IRubyObject) bj.getValue();
@@ -492,7 +504,7 @@ public class RubyObject extends RubyBasicObject {
             block.getBinding().getFrame().setSelf(RubyObject.this);
             // end hack
 
-            return block.yield(context, this, this, context.getRubyClass(), false);
+            return block.yieldNonArray(context, this, this, context.getRubyClass());
             //TODO: Should next and return also catch here?
         } catch (JumpException.BreakJump bj) {
             return (IRubyObject) bj.getValue();
@@ -543,7 +555,7 @@ public class RubyObject extends RubyBasicObject {
     @JRubyMethod(name = "===", required = 1)
     @Override
     public IRubyObject op_eqq(ThreadContext context, IRubyObject other) {
-        return super.op_eqq(context, other);
+        return context.getRuntime().newBoolean(equalInternal(context, this, other));
     }
 
     /**
@@ -572,15 +584,17 @@ public class RubyObject extends RubyBasicObject {
      */
     @JRubyMethod(name = "initialize_copy", required = 1, visibility = Visibility.PRIVATE)
     public IRubyObject initialize_copy(IRubyObject original) {
-	    if (this == original) return this;
-	    checkFrozen();
+        if (this == original) {
+            return this;
+        }
+        checkFrozen();
 
         if (getMetaClass().getRealClass() != original.getMetaClass().getRealClass()) {
             throw getRuntime().newTypeError("initialize_copy should take same class object");
-	    }
+        }
 
-	    return this;
-	}
+        return this;
+    }
 
     /** obj_respond_to
      *
@@ -636,7 +650,7 @@ public class RubyObject extends RubyBasicObject {
      */
      @JRubyMethod(name = {"object_id", "__id__"})
      @Override
-     public synchronized IRubyObject id() {
+     public IRubyObject id() {
         return super.id();
      }
 
@@ -645,7 +659,7 @@ public class RubyObject extends RubyBasicObject {
      * Old id version. This one is bound to the "id" name and will emit a deprecation warning.
      */
     @JRubyMethod(name = "id")
-    public synchronized IRubyObject id_deprecated() {
+    public IRubyObject id_deprecated() {
         getRuntime().getWarnings().warn(ID.DEPRECATED_METHOD, "Object#id will be deprecated; use Object#object_id", "Object#id", "Object#object_id");
         return id();
     }
@@ -1006,31 +1020,33 @@ public class RubyObject extends RubyBasicObject {
      *                              "methods", "extend", "__send__", "instance_eval"]
      *     k.methods.length   #=> 42
      */
-    @JRubyMethod(name = "methods", optional = 1)
+    @JRubyMethod(name = "methods", optional = 1, compat = CompatVersion.RUBY1_8)
     public IRubyObject methods(ThreadContext context, IRubyObject[] args) {
-        boolean all = true;
-        if (args.length == 1) {
-            all = args[0].isTrue();
-        }
-        
+        return methods(context, args, false);
+    }
+    @JRubyMethod(name = "methods", optional = 1, compat = CompatVersion.RUBY1_9)
+    public IRubyObject methods19(ThreadContext context, IRubyObject[] args) {
+        return methods(context, args, true);
+    }
+
+    public IRubyObject methods(ThreadContext context, IRubyObject[] args, boolean useSymbols) {
+        boolean all = args.length == 1 ? args[0].isTrue() : true;
         Ruby runtime = getRuntime();
-        RubyArray singletonMethods = runtime.newArray();
+        RubyArray methods = runtime.newArray();
         Set<String> seen = new HashSet<String>();
 
         if (getMetaClass().isSingleton()) {
-            getMetaClass().populateInstanceMethodNames(seen, singletonMethods, Visibility.PRIVATE, true, false, false);
+            getMetaClass().populateInstanceMethodNames(seen, methods, Visibility.PRIVATE, true, useSymbols, false);
             if (all) {
-                getMetaClass().getSuperClass().populateInstanceMethodNames(seen, singletonMethods, Visibility.PRIVATE, true, false, true);
+                getMetaClass().getSuperClass().populateInstanceMethodNames(seen, methods, Visibility.PRIVATE, true, useSymbols, true);
             }
+        } else if (all) {
+            getMetaClass().populateInstanceMethodNames(seen, methods, Visibility.PRIVATE, true, useSymbols, true);
         } else {
-            if (all) {
-                getMetaClass().populateInstanceMethodNames(seen, singletonMethods, Visibility.PRIVATE, true, false, true);
-            } else {
-                // do nothing, leave empty
-            }
+            // do nothing, leave empty
         }
 
-        return singletonMethods;
+        return methods;
     }
 
     /** rb_obj_public_methods
@@ -1042,13 +1058,14 @@ public class RubyObject extends RubyBasicObject {
      *  the <i>all</i> parameter is set to <code>false</code>, only those methods
      *  in the receiver will be listed.
      */
-    @JRubyMethod(name = "public_methods", optional = 1)
+    @JRubyMethod(name = "public_methods", optional = 1, compat = CompatVersion.RUBY1_8)
     public IRubyObject public_methods(ThreadContext context, IRubyObject[] args) {
-        if (args.length == 0) {
-            args = new IRubyObject[] { context.getRuntime().getTrue() };
-        }
+        return getMetaClass().public_instance_methods(trueIfNoArgument(context, args));
+    }
 
-        return getMetaClass().public_instance_methods(args);
+    @JRubyMethod(name = "public_methods", optional = 1, compat = CompatVersion.RUBY1_9)
+    public IRubyObject public_methods19(ThreadContext context, IRubyObject[] args) {
+        return getMetaClass().public_instance_methods19(trueIfNoArgument(context, args));
     }
 
     /** rb_obj_protected_methods
@@ -1063,13 +1080,14 @@ public class RubyObject extends RubyBasicObject {
      *  Internally this implementation uses the
      *  {@link RubyModule#protected_instance_methods} method.
      */
-    @JRubyMethod(name = "protected_methods", optional = 1)
+    @JRubyMethod(name = "protected_methods", optional = 1, compat = CompatVersion.RUBY1_8)
     public IRubyObject protected_methods(ThreadContext context, IRubyObject[] args) {
-        if (args.length == 0) {
-            args = new IRubyObject[] { context.getRuntime().getTrue() };
-        }
+        return getMetaClass().protected_instance_methods(trueIfNoArgument(context, args));
+    }
 
-        return getMetaClass().protected_instance_methods(args);
+    @JRubyMethod(name = "protected_methods", optional = 1, compat = CompatVersion.RUBY1_9)
+    public IRubyObject protected_methods19(ThreadContext context, IRubyObject[] args) {
+        return getMetaClass().protected_instance_methods19(trueIfNoArgument(context, args));
     }
 
     /** rb_obj_private_methods
@@ -1084,13 +1102,19 @@ public class RubyObject extends RubyBasicObject {
      *  Internally this implementation uses the
      *  {@link RubyModule#private_instance_methods} method.
      */
-    @JRubyMethod(name = "private_methods", optional = 1)
+    @JRubyMethod(name = "private_methods", optional = 1, compat = CompatVersion.RUBY1_8)
     public IRubyObject private_methods(ThreadContext context, IRubyObject[] args) {
-        if (args.length == 0) {
-            args = new IRubyObject[] { context.getRuntime().getTrue() };
-        }
+        return getMetaClass().private_instance_methods(trueIfNoArgument(context, args));
+    }
 
-        return getMetaClass().private_instance_methods(args);
+    @JRubyMethod(name = "private_methods", optional = 1, compat = CompatVersion.RUBY1_9)
+    public IRubyObject private_methods19(ThreadContext context, IRubyObject[] args) {
+        return getMetaClass().private_instance_methods19(trueIfNoArgument(context, args));
+    }
+
+    // FIXME: If true array is common enough we should pre-allocate and stick somewhere
+    private IRubyObject[] trueIfNoArgument(ThreadContext context, IRubyObject[] args) {
+        return args.length == 0 ? new IRubyObject[] { context.getRuntime().getTrue() } : args;
     }
 
     /** rb_obj_singleton_methods
@@ -1151,7 +1175,7 @@ public class RubyObject extends RubyBasicObject {
             }
             if (all) {
                 RubyClass superClass = getMetaClass().getSuperClass();
-                while (superClass.isIncluded()) {
+                while (superClass.isSingleton() || superClass.isIncluded()) {
                     singletonMethods.concat(superClass.instance_methods(new IRubyObject[] {context.getRuntime().getFalse()}));
                     superClass = superClass.getSuperClass();
                 }
@@ -1465,6 +1489,11 @@ public class RubyObject extends RubyBasicObject {
     @JRubyMethod(name = "=~", required = 1)
     public IRubyObject op_match(ThreadContext context, IRubyObject arg) {
     	return context.getRuntime().getFalse();
+    }
+
+    @JRubyMethod(name = "!~", required = 1, compat = CompatVersion.RUBY1_9)
+    public IRubyObject op_not_match(ThreadContext context, IRubyObject arg) {
+        return context.getRuntime().newBoolean(! callMethod(context, "=~", arg).isTrue());
     }
 
     public IRubyObject to_java() {

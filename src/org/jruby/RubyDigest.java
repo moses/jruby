@@ -31,18 +31,20 @@
  ***** END LICENSE BLOCK *****/
 package org.jruby;
 
-import java.math.BigInteger;
-import java.security.Provider;
+import java.security.AccessController;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivilegedAction;
+import java.security.Provider;
 import java.util.Arrays;
+
+import org.jruby.anno.JRubyClass;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.anno.JRubyModule;
-import org.jruby.anno.JRubyClass;
-
 import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ObjectAllocator;
+import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.runtime.callback.Callback;
 import org.jruby.util.ByteList;
@@ -55,15 +57,24 @@ public class RubyDigest {
     private static Provider provider = null;
 
     public static void createDigest(Ruby runtime) {
-        try {
-            provider = (Provider) Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider").newInstance();
-        } catch(Exception e) {
-            // provider is not available
-        }
+        // We're not setting the provider or anything, but it seems that BouncyCastle does some internal things in its
+        // provider's constructor which require it to be executed in a secure context.
+        // Ideally this hack should be removed. See JRUBY-3919 and this BC bug:
+        //   http://www.bouncycastle.org/jira/browse/BJA-227
+        provider = (Provider) AccessController.doPrivileged(new PrivilegedAction() {
+            public Object run() {
+                try {
+                    return Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider").newInstance();
+                } catch(Exception e) {
+                    // provider is not available
+                    return null;
+                }
+            }
+        });
 
         RubyModule mDigest = runtime.defineModule("Digest");
+        mDigest.defineAnnotatedMethods(RubyDigest.class);
         RubyClass cDigestBase = mDigest.defineClassUnder("Base",runtime.getObject(), Base.BASE_ALLOCATOR);
-
         cDigestBase.defineAnnotatedMethods(Base.class);
     }
 
@@ -77,6 +88,27 @@ public class RubyDigest {
         }
         // fall back to system JCA providers
         return MessageDigest.getInstance(providerName);
+    }
+
+
+    @JRubyMethod(name = "const_missing", required = 1, module = true)
+    public static IRubyObject const_missing(ThreadContext ctx, IRubyObject recv, IRubyObject symbol) {
+        Ruby runtime = ctx.getRuntime();
+        String sym = ((RubySymbol)symbol).asJavaString();
+        String libName;
+        if("SHA256".equals(sym) || "SHA384".equals(sym) || "SHA512".equals(sym)) {
+            libName = "digest/sha2.jar";
+        }
+        else {
+            libName = "digest/" + sym.toLowerCase();
+        }
+
+        runtime.getLoadService().require(libName);
+        RubyModule digest = runtime.getModule("Digest");
+        if(!digest.hasConstant(sym)) {
+            throw runtime.newNameError("unitialized constant Digest::" + sym, "Digest::" + sym);
+        }
+        return digest.getConstant(sym);
     }
 
     @JRubyClass(name="Digest::MD5", parent="Digest::Base")
@@ -139,15 +171,21 @@ public class RubyDigest {
         RubyModule mDigest = runtime.fastGetModule("Digest");
         RubyClass cDigestBase = mDigest.fastGetClass("Base");
         RubyClass cDigest_SHA2_256 = mDigest.defineClassUnder("SHA256",cDigestBase,cDigestBase.getAllocator());
-        cDigest_SHA2_256.setInternalModuleVariable("metadata",runtime.newString("SHA-256"));
-        cDigest_SHA2_256.defineFastMethod("block_length", new Callback() {
+        RubyClass cDigest_SHA2_META = mDigest.defineClassUnder("SHA2",cDigestBase,cDigestBase.getAllocator());
+        RubyString sha256Method = runtime.newString("SHA-256");
+        Callback sha256Callback = new Callback() {
             public Arity getArity() {
                 return Arity.NO_ARGUMENTS;
             }
             public IRubyObject execute(IRubyObject recv, IRubyObject[] args, Block block) {
                 return RubyFixnum.newFixnum(recv.getRuntime(), 64);
             }
-        });
+        };
+        cDigest_SHA2_256.setInternalModuleVariable("metadata", sha256Method);
+        cDigest_SHA2_META.setInternalModuleVariable("metadata", sha256Method);
+        cDigest_SHA2_256.defineFastMethod("block_length", sha256Callback);
+        cDigest_SHA2_META.defineFastMethod("block_length", sha256Callback);
+
         RubyClass cDigest_SHA2_384 = mDigest.defineClassUnder("SHA384",cDigestBase,cDigestBase.getAllocator());
         cDigest_SHA2_384.setInternalModuleVariable("metadata",runtime.newString("SHA-384"));
         cDigest_SHA2_384.defineFastMethod("block_length", new Callback() {

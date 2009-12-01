@@ -42,6 +42,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 import org.jruby.Ruby;
@@ -92,25 +94,31 @@ public class RubyTCPSocket extends RubyIPSocket {
 
         String remoteHost = args[0].isNil()? "localhost" : args[0].convertToString().toString();
         int remotePort = getPortFrom(context.getRuntime(), args[1]);
-        String localHost = args.length >= 3 ? args[2].convertToString().toString() : null;
+        String localHost = args.length >= 3 && !args[2].isNil() ? args[2].convertToString().toString() : null;
         int localPort = args.length == 4 ? getPortFrom(context.getRuntime(), args[3]) : 0;
 
         try {
-            SocketChannel channel = null;
-            if(localHost == null) {
-                InetSocketAddress addr = new InetSocketAddress(InetAddress.getByName(remoteHost), remotePort);
-                channel = SocketChannel.open(addr);
+            // This is a bit convoluted because (1) SocketChannel.bind is only in jdk 7 and
+            // (2) Socket.getChannel() seems to return null in some cases
+            final SocketChannel channel = SocketChannel.open();
+            final Socket socket = channel.socket();
+            if (localHost != null) {
+                socket.bind( new InetSocketAddress(InetAddress.getByName(localHost), localPort) );
+            }
+            try {
+                channel.configureBlocking(false);
+                channel.connect( new InetSocketAddress(InetAddress.getByName(remoteHost), remotePort) );
+                context.getThread().select(channel, this, SelectionKey.OP_CONNECT);
                 channel.finishConnect();
-            } else {
-                Socket socket = new Socket();
-                socket.bind(new InetSocketAddress(InetAddress.getByName(localHost), localPort));
-                socket.connect(new InetSocketAddress(InetAddress.getByName(remoteHost), remotePort));
-                channel = socket.getChannel();
+            } finally {
+                channel.configureBlocking(true);
             }
             initSocket(context.getRuntime(), new ChannelDescriptor(channel, RubyIO.getNewFileno(), new ModeFlags(ModeFlags.RDWR), new FileDescriptor()));
         } catch (InvalidValueException ex) {
             throw context.getRuntime().newErrnoEINVALError();
         } catch(ConnectException e) {
+            throw context.getRuntime().newErrnoECONNREFUSEDError();
+        } catch (ClosedChannelException cce) {
             throw context.getRuntime().newErrnoECONNREFUSEDError();
         } catch(UnknownHostException e) {
             throw sockerr(context.getRuntime(), "initialize: name or service not known");

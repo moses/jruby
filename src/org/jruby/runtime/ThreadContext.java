@@ -109,6 +109,7 @@ public final class ThreadContext {
     // the grep is running in so that the backref will be set in an
     // appropriate place.
     private int rubyFrameDelta = 0;
+    private boolean eventHooksEnabled = true;
     
     /**
      * Constructor for Context.
@@ -416,6 +417,15 @@ public final class ThreadContext {
     public int getFrameCount() {
         return frameIndex + 1;
     }
+
+    public Frame[] getFrames(int delta) {
+        int top = frameIndex + delta;
+        Frame[] frames = new Frame[top + 1];
+        for (int i = 0; i <= top; i++) {
+            frames[i] = frameStack[i].duplicateForBacktrace();
+        }
+        return frames;
+    }
     
     public String getFrameName() {
         return getCurrentFrame().getName();
@@ -493,8 +503,16 @@ public final class ThreadContext {
     public void callThreadPoll() {
         if ((calls++ & 0xFF) == 0) pollThreadEvents();
     }
+
+    public static void callThreadPoll(ThreadContext context) {
+        if ((context.calls++ & 0xFF) == 0) context.pollThreadEvents();
+    }
     
     public void trace(RubyEvent event, String name, RubyModule implClass) {
+        trace(event, name, implClass, file, line);
+    }
+
+    public void trace(RubyEvent event, String name, RubyModule implClass, String file, int line) {
         runtime.callEventHooks(this, event, file, line, name, implClass);
     }
     
@@ -759,6 +777,14 @@ public final class ThreadContext {
         return traceFrames;
     }
 
+    public boolean isEventHooksEnabled() {
+        return eventHooksEnabled;
+    }
+
+    public void setEventHooksEnabled(boolean flag) {
+        eventHooksEnabled = flag;
+    }
+
     public static class RubyStackTraceElement {
         private StackTraceElement element;
         private boolean binding;
@@ -895,7 +921,7 @@ public final class ThreadContext {
     
     public static IRubyObject createRubyCompiledBacktrace(Ruby runtime, StackTraceElement[] stackTrace) {
         RubyArray traceArray = RubyArray.newArray(runtime);
-        for (int i = 17; i < stackTrace.length; i++) {
+        for (int i = 0; i < stackTrace.length; i++) {
             StackTraceElement element = stackTrace[i];
             int index = element.getMethodName().indexOf("$RUBY$");
             if (index < 0) continue;
@@ -1238,9 +1264,11 @@ public final class ThreadContext {
         popFrame();
     }
     
-    public void preRunThread(Frame currentFrame) {
-        setFileAndLine(currentFrame);
-        pushFrame(currentFrame);
+    public void preRunThread(Frame[] currentFrames) {
+        for (Frame frame : currentFrames) {
+            pushFrame(frame);
+        }
+        setFileAndLine(getCurrentFrame());
     }
     
     public void preTrace() {

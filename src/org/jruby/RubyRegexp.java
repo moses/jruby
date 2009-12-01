@@ -261,7 +261,7 @@ public class RubyRegexp extends RubyObject implements ReOptions, EncodingCapable
 
     private RubyRegexp(Ruby runtime, ByteList str, int options) {
         this(runtime);
-        setKCode(runtime, options);
+        setKCode(runtime, options & 0x7f); // mask off "once" flag
         this.str = str;
         this.pattern = getRegexpFromCache(runtime, str, kcode.getEncoding(), options & 0xf);
     }
@@ -918,6 +918,7 @@ public class RubyRegexp extends RubyObject implements ReOptions, EncodingCapable
     @JRubyMethod(name = "union", rest = true, meta = true)
     public static IRubyObject union(ThreadContext context, IRubyObject recv, IRubyObject[] args) {
         Ruby runtime = context.getRuntime();
+        IRubyObject[] realArgs = args;
         if (args.length == 0) {
             return newRegexp(runtime, ByteList.create("(?!)"), 0);
         } else if (args.length == 1) {
@@ -925,51 +926,61 @@ public class RubyRegexp extends RubyObject implements ReOptions, EncodingCapable
             if (!v.isNil()) {
                 return v;
             } else {
-                // newInstance here
-                return newRegexp(runtime, quote(context, recv, args).getByteList(), 0);
-            }
-        } else {
-            KCode kcode = null;
-            IRubyObject kcode_re = runtime.getNil();
-            RubyString source = runtime.newString();
-            IRubyObject[] _args = new IRubyObject[3];
-
-            for (int i = 0; i < args.length; i++) {
-                if (0 < i) source.cat((byte)'|');
-                IRubyObject v = TypeConverter.convertToTypeWithCheck(args[i], runtime.getRegexp(), "to_regexp");
-                if (!v.isNil()) {
-                    if (!((RubyRegexp)v).isKCodeDefault()) {
-                        if (kcode == null) {
-                            kcode_re = v;
-                            kcode = ((RubyRegexp)v).kcode;
-                        } else if (((RubyRegexp)v).kcode != kcode) {
-                            IRubyObject str1 = kcode_re.inspect();
-                            IRubyObject str2 = v.inspect();
-                            throw runtime.newArgumentError("mixed kcode " + str1 + " and " + str2);
-                        }
+                IRubyObject a = TypeConverter.convertToTypeWithCheck(args[0], runtime.getArray(), "to_ary");
+                if (!a.isNil()) {
+                    RubyArray aa = (RubyArray)a;
+                    int len = aa.getLength();
+                    realArgs = new IRubyObject[len];
+                    for(int i = 0; i<len; i++) {
+                        realArgs[i] = aa.entry(i);
                     }
-                    v = ((RubyRegexp)v).to_s();
                 } else {
-                    v = quote(context, recv, new IRubyObject[]{args[i]});
+                    // newInstance here
+                    return newRegexp(runtime, quote(context, recv, args).getByteList(), 0);
                 }
-                source.append(v);
             }
-
-            _args[0] = source;
-            _args[1] = runtime.getNil();
-            if (kcode == null) {
-                _args[2] = runtime.getNil();
-            } else if (kcode == KCode.NONE) {
-                _args[2] = runtime.newString("n");
-            } else if (kcode == KCode.EUC) {
-                _args[2] = runtime.newString("e");
-            } else if (kcode == KCode.SJIS) {
-                _args[2] = runtime.newString("s");
-            } else if (kcode == KCode.UTF8) {
-                _args[2] = runtime.newString("u");
-            }
-            return recv.callMethod(context, "new", _args);
         }
+
+        KCode kcode = null;
+        IRubyObject kcode_re = runtime.getNil();
+        RubyString source = runtime.newString();
+        IRubyObject[] _args = new IRubyObject[3];
+
+        for (int i = 0; i < realArgs.length; i++) {
+            if (0 < i) source.cat((byte)'|');
+            IRubyObject v = TypeConverter.convertToTypeWithCheck(realArgs[i], runtime.getRegexp(), "to_regexp");
+            if (!v.isNil()) {
+                if (!((RubyRegexp)v).isKCodeDefault()) {
+                    if (kcode == null) {
+                        kcode_re = v;
+                        kcode = ((RubyRegexp)v).kcode;
+                    } else if (((RubyRegexp)v).kcode != kcode) {
+                        IRubyObject str1 = kcode_re.inspect();
+                        IRubyObject str2 = v.inspect();
+                        throw runtime.newArgumentError("mixed kcode " + str1 + " and " + str2);
+                    }
+                }
+                v = ((RubyRegexp)v).to_s();
+            } else {
+                v = quote(context, recv, new IRubyObject[]{realArgs[i]});
+            }
+            source.append(v);
+        }
+
+        _args[0] = source;
+        _args[1] = runtime.getNil();
+        if (kcode == null) {
+            _args[2] = runtime.getNil();
+        } else if (kcode == KCode.NONE) {
+            _args[2] = runtime.newString("n");
+        } else if (kcode == KCode.EUC) {
+            _args[2] = runtime.newString("e");
+        } else if (kcode == KCode.SJIS) {
+            _args[2] = runtime.newString("s");
+        } else if (kcode == KCode.UTF8) {
+            _args[2] = runtime.newString("u");
+        }
+        return recv.callMethod(context, "new", _args);
     }
 
     // rb_reg_raise
@@ -1166,6 +1177,7 @@ public class RubyRegexp extends RubyObject implements ReOptions, EncodingCapable
     // rb_reg_initialize
     private RubyRegexp initializeCommon19(ByteList bytes, Encoding enc, int options) {
         Ruby runtime = getRuntime();        
+        setKCode(runtime, options);
         if (!isTaint() && runtime.getSafeLevel() >= 4) throw runtime.newSecurityError("Insecure: can't modify regexp");
         checkFrozen();
         if (isLiteral()) throw runtime.newSecurityError("can't modify literal regexp");
@@ -1663,7 +1675,7 @@ public class RubyRegexp extends RubyObject implements ReOptions, EncodingCapable
                     p += n;
                     continue;
                 } else if (c == '/') {
-                    to.append(c);
+                    to.append((byte) '\\');
                     to.append(bytes, p, cl);
                 } else if (!Encoding.isAscii(c)) {
                     int l = StringSupport.length(enc, bytes, p, end);

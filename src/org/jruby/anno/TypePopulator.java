@@ -7,7 +7,6 @@ package org.jruby.anno;
 
 import java.util.List;
 import java.util.Map;
-import org.jruby.RubyClass;
 import org.jruby.RubyModule;
 import org.jruby.internal.runtime.methods.CallConfiguration;
 import org.jruby.internal.runtime.methods.DynamicMethod;
@@ -22,6 +21,7 @@ import org.jruby.runtime.Visibility;
  */
 public abstract class TypePopulator {
     public void populateMethod(JavaMethod javaMethod, int arity, String simpleName, boolean isStatic, CallConfiguration callConfig) {
+        javaMethod.setIsBuiltin(true);
         javaMethod.setArity(Arity.createArity(arity));
         javaMethod.setJavaName(simpleName);
         javaMethod.setSingleton(isStatic);

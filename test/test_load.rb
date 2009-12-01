@@ -35,7 +35,19 @@ class TestLoad < Test::Unit::TestCase
     assert require('test/foo.bar')
     assert $loaded_foo_bar
   end
-  
+
+  # JRUBY-3231
+  def test_load_with_empty_string_in_loadpath
+    begin
+      $:.unshift("")
+      $loaded_foo_bar = false
+      assert load('test/foo.bar.rb')
+      assert $loaded_foo_bar
+    ensure
+      $:.shift
+    end
+  end
+
   def test_require_bogus
     assert_raises(LoadError) { require 'foo/' }
     assert_raises(LoadError) { require '' }
@@ -53,9 +65,7 @@ class TestLoad < Test::Unit::TestCase
 
   def call_extern_load_foo_bar(classpath = nil)
     cmd = ""
-    # FIX plain windows
-    cmd += "CLASSPATH=#{classpath}" if classpath 
-    cmd += "unset CLASSPATH &&" unless classpath
+    cmd += "env CLASSPATH=#{classpath}" # classpath=nil, becomes empty CLASSPATH
     cmd += " #{Config::CONFIG['bindir']}/#{Config::CONFIG['RUBY_INSTALL_NAME']} -e "
     cmd += "'"+'begin load "./test/foo.bar.rb"; rescue Exception => e; print "FAIL"; else print "OK"; end'+"'"
     `#{cmd}`
@@ -78,7 +88,7 @@ class TestLoad < Test::Unit::TestCase
   def test_load_relative_without_classpath
     # FIX for Windows
     unless WINDOWS
-      assert_equal call_extern_load_foo_bar(), 'OK'
+      assert_equal 'OK', call_extern_load_foo_bar()
     end
   end
 
@@ -168,5 +178,19 @@ DEPS
   
   def test_loading_so_fails
     assert_raise(LoadError) { load("test/bogus.so") }
+  end
+  
+  def test_require_relative_from_jar_in_classpath
+    $CLASSPATH << File.join(
+      File.dirname(__FILE__), 'jar_with_relative_require1.jar')
+    require 'test/require_relative1'
+  end
+
+  def test_loading_jar_with_dot_so
+    assert_nothing_raised {
+      require 'test/jruby-3977.so.jar'
+      load 'jruby-3977.rb'
+      assert $jruby3977
+    }
   end
 end

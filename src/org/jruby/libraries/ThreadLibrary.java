@@ -33,6 +33,7 @@ package org.jruby.libraries;
 import java.io.IOException;
 import java.util.LinkedList;
 
+import org.jruby.CompatVersion;
 import org.jruby.Ruby;
 import org.jruby.RubyObject;
 import org.jruby.RubyClass;
@@ -42,6 +43,7 @@ import org.jruby.RubyNumeric;
 import org.jruby.anno.JRubyClass;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.exceptions.RaiseException;
+import org.jruby.internal.runtime.ThreadService;
 import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ObjectAllocator;
@@ -54,10 +56,25 @@ import org.jruby.runtime.builtin.IRubyObject;
  */
 public class ThreadLibrary implements Library {
     public void load(final Ruby runtime, boolean wrap) throws IOException {
+        runtime.getThread().defineAnnotatedMethods(ThreadMethods.class);
         Mutex.setup(runtime);
         ConditionVariable.setup(runtime);
         Queue.setup(runtime);
         SizedQueue.setup(runtime);
+    }
+
+    public static class ThreadMethods {
+        @JRubyMethod(name = "exclusive", meta = true, compat = CompatVersion.RUBY1_8)
+        public static IRubyObject exclusive(ThreadContext context, IRubyObject receiver, Block block) {
+            ThreadService service  = context.getRuntime().getThreadService();
+            boolean old = service.getCritical();
+            try {
+                service.setCritical(true);
+                return block.yield(receiver.getRuntime().getCurrentContext(), (IRubyObject) null);
+            } finally {
+                service.setCritical(old);
+            }
+        }
     }
 
     @JRubyClass(name="Mutex")
@@ -86,7 +103,12 @@ public class ThreadLibrary implements Library {
 
         @JRubyMethod(name = "locked?")
         public synchronized RubyBoolean locked_p(ThreadContext context) {
-            return context.getRuntime().newBoolean(owner != null);
+            return context.getRuntime().newBoolean(isLocked());
+        }
+
+        // should be called from properly synchronized context
+        private boolean isLocked() {
+            return owner != null && owner.isAlive();
         }
 
         @JRubyMethod
@@ -95,7 +117,7 @@ public class ThreadLibrary implements Library {
             //    throw new InterruptedException();
             //}
             synchronized (this) {
-                if ( owner != null ) {
+                if (isLocked()) {
                     return context.getRuntime().getFalse();
                 }
                 lock(context);
@@ -115,12 +137,12 @@ public class ThreadLibrary implements Library {
                         if (owner == context.getThread()) {
                             throw context.getRuntime().newThreadError("Mutex relocking by same thread");
                         }
-                        while ( owner != null ) {
+                        while (isLocked()) {
                             wait();
                         }
                         owner = context.getThread();
                     } catch (InterruptedException ex) {
-                        if ( owner == null ) {
+                        if (!isLocked()) {
                             notify();
                         }
                         throw ex;
@@ -134,12 +156,16 @@ public class ThreadLibrary implements Library {
 
         @JRubyMethod
         public synchronized RubyBoolean unlock(ThreadContext context) {
-            if ( owner != null ) {
+            if (isLocked()) {
+                if (owner != context.getThread()) {
+                    throw context.getRuntime().newThreadError(
+                            "Mutex is not owned by calling thread");
+                }
                 owner = null;
                 notify();
                 return context.getRuntime().getTrue();
             } else {
-                return context.getRuntime().getFalse();
+                throw context.getRuntime().newThreadError("Mutex is not locked");
             }
         }
 
@@ -264,19 +290,35 @@ public class ThreadLibrary implements Library {
             cQueue.defineAnnotatedMethods(Queue.class);
         }
 
+        @JRubyMethod(name = "shutdown!")
+        public synchronized IRubyObject shutdown(ThreadContext context) {
+            entries = null;
+            notifyAll();
+            return context.getRuntime().getNil();
+        }
+
+        public synchronized void checkShutdown(ThreadContext context) {
+            if (entries == null) {
+                throw new RaiseException(context.getRuntime(), context.getRuntime().getThreadError(), "queue shut down", false);
+            }
+        }
+
         @JRubyMethod
         public synchronized IRubyObject clear(ThreadContext context) {
+            checkShutdown(context);
             entries.clear();
             return context.getRuntime().getNil();
         }
 
         @JRubyMethod(name = "empty?")
         public synchronized RubyBoolean empty_p(ThreadContext context) {
+            checkShutdown(context);
             return context.getRuntime().newBoolean(entries.size() == 0);
         }
 
         @JRubyMethod(name = {"length", "size"})
         public synchronized RubyNumeric length(ThreadContext context) {
+            checkShutdown(context);
             return RubyNumeric.int2fix(context.getRuntime(), entries.size());
         }
 
@@ -289,6 +331,7 @@ public class ThreadLibrary implements Library {
 
         @JRubyMethod(name = {"pop", "deq", "shift"}, optional = 1)
         public synchronized IRubyObject pop(ThreadContext context, IRubyObject[] args) {
+            checkShutdown(context);
             boolean should_block = true;
             if ( Arity.checkArgumentCount(context.getRuntime(), args, 0, 1) == 1 ) {
                 should_block = !args[0].isTrue();
@@ -297,22 +340,23 @@ public class ThreadLibrary implements Library {
                 throw new RaiseException(context.getRuntime(), context.getRuntime().getThreadError(), "queue empty", false);
             }
             numWaiting++;
-            while ( entries.size() == 0 ) {
-                try {
-                    // TODO: No, this isn't atomic; we need to improve it
-                    context.getThread().enterSleep();
-                    wait();
-                } catch (InterruptedException e) {
-                } finally {
-                    context.getThread().exitSleep();
+            try {
+                while ( java_length() == 0 ) {
+                    try {
+                        context.getThread().wait_timeout(this, null);
+                    } catch (InterruptedException e) {
+                    }
+                    checkShutdown(context);
                 }
+            } finally {
+                numWaiting--;
             }
-            numWaiting--;
             return (IRubyObject)entries.removeFirst();
         }
 
         @JRubyMethod(name = {"push", "<<", "enq"})
         public synchronized IRubyObject push(ThreadContext context, IRubyObject value) {
+            checkShutdown(context);
             entries.addLast(value);
             notify();
             return context.getRuntime().getNil();
@@ -389,15 +433,20 @@ public class ThreadLibrary implements Library {
         @JRubyMethod(name = {"push", "<<"})
         @Override
         public synchronized IRubyObject push(ThreadContext context, IRubyObject value) {
+            checkShutdown(context);
             if ( java_length() >= capacity ) {
                 numWaiting++;
-                while ( java_length() >= capacity ) {
-                    try {
-                        wait();
-                    } catch (InterruptedException e) {
+                try {
+                    while ( java_length() >= capacity ) {
+                        try {
+                            context.getThread().wait_timeout(this, null);
+                        } catch (InterruptedException e) {
+                        }
+                        checkShutdown(context);
                     }
+                } finally {
+                    numWaiting--;
                 }
-                numWaiting--;
             }
             super.push(context, value);
             notifyAll();

@@ -32,12 +32,15 @@ package org.jruby.compiler;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jruby.Ruby;
+import org.jruby.RubyModule;
+import org.jruby.MetaClass;
 import org.jruby.RubyInstanceConfig;
 import org.jruby.ast.ArgsNode;
 import org.jruby.ast.Node;
 import org.jruby.ast.executable.Script;
 import org.jruby.ast.util.SexpMaker;
 import org.jruby.compiler.impl.StandardASMCompiler;
+import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.internal.runtime.methods.CallConfiguration;
 import org.jruby.internal.runtime.methods.DefaultMethod;
 import org.jruby.internal.runtime.methods.DynamicMethod;
@@ -104,13 +107,24 @@ public class JITCompiler implements JITCompilerMBean {
 
             // Check if the method has been explicitly excluded
             String moduleName = method.getImplementationClass().getName();
-            if (instanceConfig.getExcludedMethods().size() > 0 &&
-                    (instanceConfig.getExcludedMethods().contains(moduleName) ||
-                    instanceConfig.getExcludedMethods().contains(moduleName+"#"+name) ||
-                    instanceConfig.getExcludedMethods().contains(name))) {
-                method.setCallCount(-1);
-                return null;
+            if(instanceConfig.getExcludedMethods().size() > 0) {
+                String excludeModuleName = moduleName;
+                if(method.getImplementationClass().isSingleton()) {
+                    IRubyObject possibleRealClass = ((MetaClass)method.getImplementationClass()).getAttached();
+                    if(possibleRealClass instanceof RubyModule) {
+                        excludeModuleName = "Meta:" + ((RubyModule)possibleRealClass).getName();
+                    }
+                }
+
+                if ((instanceConfig.getExcludedMethods().contains(excludeModuleName) ||
+                     instanceConfig.getExcludedMethods().contains(excludeModuleName +"#"+name) ||
+                     instanceConfig.getExcludedMethods().contains(name))) {
+                    method.setCallCount(-1);
+                    return null;
+                }
             }
+
+
 
             JITClassGenerator generator = new JITClassGenerator(name, context.getRuntime(), method, context);
 
@@ -148,7 +162,6 @@ public class JITCompiler implements JITCompilerMBean {
             method.switchToJitted(jitCompiledScript, generator.callConfig());
             return null;
         } catch (Throwable t) {
-            t.printStackTrace();
             if (instanceConfig.isJitLoggingVerbose()) log(method, name, "could not compile", t.getMessage());
 
             failCount.incrementAndGet();
@@ -206,7 +219,7 @@ public class JITCompiler implements JITCompilerMBean {
             BodyCompiler methodCompiler;
             if (bodyNode != null) {
                 // we have a body, do a full-on method
-                methodCompiler = asmCompiler.startMethod("__file__", "__file__", args, staticScope, inspector);
+                methodCompiler = asmCompiler.startFileMethod(args, staticScope, inspector);
                 compiler.compile(bodyNode, methodCompiler,true);
             } else {
                 // If we don't have a body, check for required or opt args
@@ -214,10 +227,10 @@ public class JITCompiler implements JITCompilerMBean {
                 // if required args, need to raise errors if too few args passed
                 // otherwise, method does nothing, make it a nop
                 if (argsNode != null && (argsNode.getRequiredArgsCount() > 0 || argsNode.getOptionalArgsCount() > 0)) {
-                    methodCompiler = asmCompiler.startMethod("__file__", "__file__", args, staticScope, inspector);
+                    methodCompiler = asmCompiler.startFileMethod(args, staticScope, inspector);
                     methodCompiler.loadNil();
                 } else {
-                    methodCompiler = asmCompiler.startMethod("__file__", "__file__", null, staticScope, inspector);
+                    methodCompiler = asmCompiler.startFileMethod(null, staticScope, inspector);
                     methodCompiler.loadNil();
                     jitCallConfig = CallConfiguration.FrameNoneScopeNone;
                 }

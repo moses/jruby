@@ -63,7 +63,6 @@ import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.Arity;
 import org.jruby.runtime.ClassIndex;
 import org.jruby.runtime.DynamicScope;
-import org.jruby.runtime.Frame;
 import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.Visibility;
@@ -177,7 +176,7 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     static RubyComplex newComplexBang(ThreadContext context, IRubyObject clazz, IRubyObject x, IRubyObject y) {
-        assert x instanceof RubyComplex && y instanceof RubyComplex;
+// FIXME: what should these really be? Numeric?       assert x instanceof RubyComplex && y instanceof RubyComplex;
         return new RubyComplex(context.getRuntime(), clazz, x, y);
     }
 
@@ -185,7 +184,7 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     public static RubyComplex newComplexBang(ThreadContext context, IRubyObject clazz, IRubyObject x) {
-        assert x instanceof RubyComplex;
+// FIXME: what should this really be?       assert x instanceof RubyComplex;
         return newComplexBang(context, clazz, x, RubyFixnum.zero(context.getRuntime()));
     }
 
@@ -271,6 +270,14 @@ public class RubyComplex extends RubyNumeric {
         return new RubyComplex(context.getRuntime(), recv, real, image);
     }
 
+    /** nucomp_canonicalization
+     * 
+     */
+    private static boolean canonicalization = false;
+    public static void setCanonicalization(boolean canonical) {
+        canonicalization = canonical;
+    }
+
     /** nucomp_real_check (might go to bimorphic)
      * 
      */
@@ -292,7 +299,6 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     private static final boolean CL_CANON = Numeric.CANON;
-    private static boolean canonicalization = false;
     private static IRubyObject canonicalizeInternal(ThreadContext context, IRubyObject clazz, IRubyObject real, IRubyObject image) {
         if (Numeric.CANON) {
             if (f_zero_p(context, image) &&
@@ -566,6 +572,7 @@ public class RubyComplex extends RubyNumeric {
      *
      */
     @JRubyMethod(name = "fdiv")
+    @Override
     public IRubyObject fdiv(ThreadContext context, IRubyObject other) {
         IRubyObject complex = newComplex(context, getMetaClass(),
                                          f_to_f(context, real),   
@@ -639,16 +646,22 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     @JRubyMethod(name = "==")
+    @Override
     public IRubyObject op_equal(ThreadContext context, IRubyObject other) {
         if (other instanceof RubyComplex) {
-            RubyComplex otherComplex = (RubyComplex)other;
-            if (f_equal_p(context, real, otherComplex.real) && f_equal_p(context, image, otherComplex.image)) return context.getRuntime().getTrue();
-            return context.getRuntime().getFalse();
-        } else if (other instanceof RubyNumeric && f_real_p(context, other).isTrue()) {
-            if (f_equal_p(context, real, other) && f_zero_p(context, image)) return context.getRuntime().getTrue();
-            return context.getRuntime().getFalse();
+            RubyComplex otherComplex = (RubyComplex) other;
+            boolean test = f_equal_p(context, real, otherComplex.real) && f_equal_p(context, image, otherComplex.image);
+
+            return context.getRuntime().newBoolean(test);
         }
-        return f_equal_p(context, other, this) ? context.getRuntime().getTrue() : context.getRuntime().getFalse();        
+
+        if (other instanceof RubyNumeric && f_real_p(context, other).isTrue()) {
+            boolean test = f_equal_p(context, real, other) && f_zero_p(context, image);
+            
+            return context.getRuntime().newBoolean(test);
+        }
+        
+        return context.getRuntime().newBoolean(f_equal_p(context, other, this));
     }
 
     /** nucomp_coerce 
@@ -666,6 +679,7 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     @JRubyMethod(name = {"abs", "magnitude"})
+    @Override
     public IRubyObject abs(ThreadContext context) {
         return RubyMath.hypot(this, real, image);
     }
@@ -674,6 +688,7 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     @JRubyMethod(name = "abs2")
+    @Override
     public IRubyObject abs2(ThreadContext context) {
         return f_add(context,
                      f_mul(context, real, real),
@@ -684,6 +699,7 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     @JRubyMethod(name = {"arg", "angle", "phase"})
+    @Override
     public IRubyObject arg(ThreadContext context) {
         return RubyMath.atan2(this, image, real);
     }
@@ -692,6 +708,7 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     @JRubyMethod(name = {"rectangular", "rect"})
+    @Override
     public IRubyObject rect(ThreadContext context) {
         return context.getRuntime().newArray(real, image);
     }
@@ -700,6 +717,7 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     @JRubyMethod(name = "polar")
+    @Override
     public IRubyObject polar(ThreadContext context) {
         return context.getRuntime().newArray(f_abs(context, this), f_arg(context, this));
     }
@@ -708,6 +726,7 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     @JRubyMethod(name = {"conjugate", "conj", "~"})
+    @Override
     public IRubyObject conjugate(ThreadContext context) {
         return newComplex(context, getMetaClass(), real, f_negate(context, image));
     }
@@ -756,6 +775,7 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     @JRubyMethod(name = "numerator")
+    @Override
     public IRubyObject numerator(ThreadContext context) {
         IRubyObject cd = callMethod(context, "denominator");
         return newComplex(context, getMetaClass(),
@@ -779,6 +799,7 @@ public class RubyComplex extends RubyNumeric {
      * 
      */
     @JRubyMethod(name = "eql?")
+    @Override
     public IRubyObject eql_p(ThreadContext context, IRubyObject other) {
         if (other instanceof RubyComplex) {
             RubyComplex otherComplex = (RubyComplex)other;

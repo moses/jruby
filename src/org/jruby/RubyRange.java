@@ -127,6 +127,19 @@ public class RubyRange extends RubyObject {
         range.isExclusive = isExclusive;
     }
 
+    final boolean checkBegin(long length) {
+        long beg = RubyNumeric.num2long(this.begin);
+        if(beg < 0) {
+            beg += length;
+            if(beg < 0) {
+                return false;
+            }
+        } else if(length < beg) {
+            return false;
+        }
+        return true;
+    }
+
     final long[] begLen(long len, int err){
         long beg = RubyNumeric.num2long(this.begin);
         long end = RubyNumeric.num2long(this.end);
@@ -378,11 +391,12 @@ public class RubyRange extends RubyObject {
     @JRubyMethod(name = "each", frame = true, compat = CompatVersion.RUBY1_8)
     public IRubyObject each(ThreadContext context, final Block block) {
         final Ruby runtime = context.getRuntime();
+        if (!block.isGiven()) return enumeratorize(runtime, this, "each");
 
         if (begin instanceof RubyFixnum && end instanceof RubyFixnum) {
             fixnumEach(context, runtime, block);
         } else if (begin instanceof RubyString) {
-            ((RubyString) begin).uptoCommon(context, end, isExclusive, block);
+            ((RubyString) begin).uptoCommon18(context, end, isExclusive, block);
         } else {
             if (!begin.respondsTo("succ")) throw getRuntime().newTypeError(
                     "can't iterate from " + begin.getMetaClass().getName());
@@ -436,12 +450,12 @@ public class RubyRange extends RubyObject {
 
     @JRubyMethod(name = "step", frame = true, compat = CompatVersion.RUBY1_8)
     public IRubyObject step(ThreadContext context, IRubyObject step, Block block) {
-        return stepCommon(context, step, block);
+        return block.isGiven() ? stepCommon(context, step, block) : enumeratorize(context.getRuntime(), this, "step", step);
     }
 
     @JRubyMethod(name = "step", frame = true, compat = CompatVersion.RUBY1_8)
     public IRubyObject step(ThreadContext context, Block block) {
-        return stepCommon(context, RubyFixnum.one(context.getRuntime()), block);
+        return block.isGiven() ? stepCommon(context, RubyFixnum.one(context.getRuntime()), block)  : enumeratorize(context.getRuntime(), this, "step");
     }
 
     private IRubyObject stepCommon(ThreadContext context, IRubyObject step, Block block) {
@@ -459,7 +473,7 @@ public class RubyRange extends RubyObject {
                 // rb_iterate((VALUE(*)_((VALUE)))str_step, (VALUE)args, step_i, (VALUE)iter);
                 StepBlockCallBack callback = new StepBlockCallBack(block, RubyFixnum.one(runtime), step);
                 Block blockCallback = CallBlock.newCallClosure(this, runtime.getRange(), Arity.singleArgument(), callback, context);
-                ((RubyString)tmp).uptoCommon(context, end, isExclusive, blockCallback);
+                ((RubyString)tmp).uptoCommon18(context, end, isExclusive, blockCallback);
             } else if (begin instanceof RubyNumeric) {
                 if (equalInternal(context, step, RubyFixnum.zero(runtime))) throw runtime.newArgumentError("step can't be 0");
                 numericStep(context, runtime, step, block);

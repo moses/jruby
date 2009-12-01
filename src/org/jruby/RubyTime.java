@@ -272,11 +272,22 @@ public class RubyTime extends RubyObject {
 
     @JRubyMethod(name = "strftime", required = 1)
     public RubyString strftime(IRubyObject format) {
-        final RubyDateFormat rubyDateFormat = new RubyDateFormat("-", Locale.US);
-        rubyDateFormat.applyPattern(format.toString());
+        final RubyDateFormat rubyDateFormat = new RubyDateFormat("-", Locale.US, getRuntime().is1_9());
+        rubyDateFormat.applyPattern(format.convertToString().getUnicodeValue());
         rubyDateFormat.setDateTime(dt);
         String result = rubyDateFormat.format(null);
         return getRuntime().newString(result);
+    }
+
+    @JRubyMethod(name = "==", required = 1, compat= CompatVersion.RUBY1_9)
+    public IRubyObject op_equal(ThreadContext context, IRubyObject other) {
+        if (other.isNil()) {
+            return RubyBoolean.newBoolean(getRuntime(), false);
+        } else if (other instanceof RubyTime) {
+            return getRuntime().newBoolean(cmp((RubyTime) other) == 0);
+        }
+
+        return RubyComparable.op_equal(context, this, other);
     }
     
     @JRubyMethod(name = ">=", required = 1)
@@ -651,7 +662,9 @@ public class RubyTime extends RubyObject {
             // the decimal point is honored.
             if (arg instanceof RubyFloat) {
                 double dbl = ((RubyFloat) arg).getDoubleValue();
-                long micro = (long) ((dbl - seconds) * 1000000);
+                long micro = Math.round((dbl - seconds) * 1000000);
+                if(dbl < 0)
+                    micro += 1000000;
                 millisecs = micro / 1000;
                 microsecs = micro % 1000;
             }
@@ -702,6 +715,10 @@ public class RubyTime extends RubyObject {
         return s_mload(recv, (RubyTime)(((RubyClass)recv).allocate()), from);
     }
 
+    public Object toJava(Class target) {
+        return getJavaDate();
+    }
+    
     protected static RubyTime s_mload(IRubyObject recv, RubyTime time, IRubyObject from) {
         Ruby runtime = recv.getRuntime();
 

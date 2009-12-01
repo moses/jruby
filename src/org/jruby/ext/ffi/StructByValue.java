@@ -19,12 +19,14 @@ public final class StructByValue extends Type {
     private final RubyClass structClass;
 
     public static RubyClass createStructByValueClass(Ruby runtime, RubyModule ffiModule) {
-        RubyClass enumClass = ffiModule.defineClassUnder("StructByValue", ffiModule.fastGetClass("Type"),
+        RubyClass sbvClass = ffiModule.defineClassUnder("StructByValue", ffiModule.fastGetClass("Type"),
                 ObjectAllocator.NOT_ALLOCATABLE_ALLOCATOR);
-        enumClass.defineAnnotatedMethods(StructByValue.class);
-        enumClass.defineAnnotatedConstants(StructByValue.class);
+        sbvClass.defineAnnotatedMethods(StructByValue.class);
+        sbvClass.defineAnnotatedConstants(StructByValue.class);
 
-        return enumClass;
+        ffiModule.fastGetClass("Type").fastSetConstant("Struct", sbvClass);
+
+        return sbvClass;
     }
 
     @JRubyMethod(name = "new", meta = true)
@@ -43,7 +45,7 @@ public final class StructByValue extends Type {
     }
 
     private StructByValue(Ruby runtime, RubyClass klass, RubyClass structClass, StructLayout structLayout) {
-        super(runtime, klass, NativeType.STRUCT);
+        super(runtime, klass, NativeType.STRUCT, structLayout.size, structLayout.alignment);
         this.structClass = structClass;
         this.structLayout = structLayout;
     }

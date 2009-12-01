@@ -2,98 +2,109 @@
 
 # detect windows platform:
 require 'rbconfig'
-WINDOWS = Config::CONFIG['host_os'] =~ /Windows|mswin/
 require 'java'
+require 'jruby'
 
 IKVM = java.lang.System.get_property('java.vm.name') =~ /IKVM\.NET/
+WINDOWS = Config::CONFIG['host_os'] =~ /mswin/
 
-DIR = File.dirname(__FILE__)
+SPEC_DIR = File.join(File.dirname(__FILE__), 'ruby') unless defined?(SPEC_DIR)
+TAGS_DIR = File.join(File.dirname(__FILE__), 'tags') unless defined?(TAGS_DIR)
 
 class MSpecScript
   # Language features specs
-  set :language, [ DIR + '/ruby/language' ]
+  set :language, [ SPEC_DIR + '/language' ]
 
   # Core library specs
   set :core, [
-    DIR + '/ruby/core',
+    SPEC_DIR + '/core',
+
+    # FIXME: Temporarily exclusion until JRUBY-4180 is fixed.
+    '^' + SPEC_DIR + '/core/proc/case_compare_spec.rb',
+    '^' + SPEC_DIR + '/core/proc/element_reference_spec.rb',
+    '^' + SPEC_DIR + '/core/proc/yield_spec.rb',
+    '^' + SPEC_DIR + '/core/proc/call_spec.rb',
 
     # 1.9
-    '^' + DIR + '/ruby/core/basicobject'
+    '^' + SPEC_DIR + '/core/basicobject'
   ]
+
+  # Filter out ObjectSpace specs if ObjectSpace is disabled
+  unless JRuby.objectspace
+    get(:core) << '^' + SPEC_DIR + '/core/objectspace/_id2ref'
+    get(:core) << '^' + SPEC_DIR + '/core/objectspace/each_object'
+  end
 
   if IKVM
     # ftype_spec freezes for some reason under IKVM
-    set(:core, get(:core) + ['^' + DIR + '/ruby/core/file'])
+    set(:core, get(:core) + ['^' + SPEC_DIR + '/core/file'])
     # Process.kill spec hangs
-    set(:core, get(:core) + ['^' + DIR + '/ruby/core/process'])
+    set(:core, get(:core) + ['^' + SPEC_DIR + '/core/process'])
   end
 
   # An ordered list of the directories containing specs to run
   # as the CI process.
   set :library, [
-    DIR + '/ruby/library/abbrev',
-    DIR + '/ruby/library/base64',
-    DIR + '/ruby/library/bigdecimal',
-    DIR + '/ruby/library/cgi',
-    DIR + '/ruby/library/complex',
-    DIR + '/ruby/library/conditionvariable',
-    DIR + '/ruby/library/csv',
-    DIR + '/ruby/library/date',
-    DIR + '/ruby/library/digest',
-    DIR + '/ruby/library/enumerator',
-    DIR + '/ruby/library/erb',
-    DIR + '/ruby/library/ftools',
-    DIR + '/ruby/library/generator',
-    DIR + '/ruby/library/getoptlong',
-    DIR + '/ruby/library/iconv',
-    DIR + '/ruby/library/ipaddr',
-    DIR + '/ruby/library/logger',
-    DIR + '/ruby/library/mathn',
-    DIR + '/ruby/library/matrix',
-    DIR + '/ruby/library/mutex',
-    DIR + '/ruby/library/observer',
-    DIR + '/ruby/library/openstruct',
-    DIR + '/ruby/library/parsedate',
-    DIR + '/ruby/library/pathname',
-    DIR + '/ruby/library/queue',
-    DIR + '/ruby/library/rational',
-    DIR + '/ruby/library/resolv',
-    DIR + '/ruby/library/rexml',
-    DIR + '/ruby/library/scanf',
-    DIR + '/ruby/library/set',
-    DIR + '/ruby/library/shellwords',
-    DIR + '/ruby/library/singleton',
-    DIR + '/ruby/library/stringio',
-    DIR + '/ruby/library/stringscanner',
-    DIR + '/ruby/library/tempfile',
-    DIR + '/ruby/library/time',
-    DIR + '/ruby/library/timeout',
-    DIR + '/ruby/library/tmpdir',
-    DIR + '/ruby/library/uri',
-    DIR + '/ruby/library/yaml',
-    DIR + '/ruby/library/zlib',
+    SPEC_DIR + '/library',
+
+    # excluded for some reason, see JRUBY-4020
+    '^' + SPEC_DIR + '/library/drb',
+    '^' + SPEC_DIR + '/library/etc',
+    '^' + SPEC_DIR + '/library/net',
+    '^' + SPEC_DIR + '/library/openssl',
+    '^' + SPEC_DIR + '/library/ping',
+    '^' + SPEC_DIR + '/library/readline',
+
+    # unstable
+    '^' + SPEC_DIR + '/library/socket',
+    '^' + SPEC_DIR + '/library/syslog',
 
     # 1.9 feature
-    '^' + DIR + 'ruby/library/cmath',
-    '^' + DIR + 'ruby/library/continuation',
-    '^' + DIR + 'ruby/library/coverage',
-    '^' + DIR + 'ruby/library/fiber',
-    '^' + DIR + 'ruby/library/json',
-    '^' + DIR + 'ruby/library/minitest',
-    '^' + DIR + 'ruby/library/prime',
-    '^' + DIR + 'ruby/library/ripper',
-    '^' + DIR + 'ruby/library/rake',
-    '^' + DIR + 'ruby/library/rubygems',
+    '^' + SPEC_DIR + '/library/cmath',
+    '^' + SPEC_DIR + '/library/continuation',
+    '^' + SPEC_DIR + '/library/coverage',
+    '^' + SPEC_DIR + '/library/fiber',
+    '^' + SPEC_DIR + '/library/json',
+    '^' + SPEC_DIR + '/library/minitest',
+    '^' + SPEC_DIR + '/library/prime',
+    '^' + SPEC_DIR + '/library/ripper',
+    '^' + SPEC_DIR + '/library/rake',
+    '^' + SPEC_DIR + '/library/rubygems',
   ]
+
+  if WINDOWS
+    # core
+    get(:core) << '^' + SPEC_DIR + '/core/argf'          # hangs
+    get(:core) << '^' + SPEC_DIR + '/core/dir'           # many failures
+    get(:core) << '^' + SPEC_DIR + '/core/env'           # many failures
+    get(:core) << '^' + SPEC_DIR + '/core/file'          # many failures
+    get(:core) << '^' + SPEC_DIR + '/core/filetest'      # many failures
+    get(:core) << '^' + SPEC_DIR + '/core/io'            # many failures
+    get(:core) << '^' + SPEC_DIR + '/core/kernel'        # many failures
+    get(:core) << '^' + SPEC_DIR + '/core/process'       # many failures
+
+    # library
+    get(:library) << '^' + SPEC_DIR + '/library/logger'   # many failures
+    get(:library) << '^' + SPEC_DIR + '/library/ftools'   # many failures
+    get(:library) << '^' + SPEC_DIR + '/library/resolv'   # many failures
+    get(:library) << '^' + SPEC_DIR + '/library/tempfile' # many failures
+
+    # exclude specs tagged with 'windows' keyword
+    set :xtags, ['windows']
+  end
 
   set :ci_files, get(:language) + get(:core) + get(:library)
 
   # The default implementation to run the specs.
-  if WINDOWS
-    jruby_script = 'jruby.bat'
-  else
-    jruby_script = 'jruby'
-  end
+  set :target, File.dirname(__FILE__) + '/../bin/' + Config::CONFIG['ruby_install_name'] + Config::CONFIG['EXEEXT']
 
-  set :target, DIR + '/../bin/' + jruby_script
+  set :backtrace_filter, /mspec\//
+
+  set :tags_patterns, [
+                        [%r(^.*/language/),     TAGS_DIR + '/1.8/ruby/language/'],
+                        [%r(^.*/core/),         TAGS_DIR + '/1.8/ruby/core/'],
+                        [%r(^.*/command_line/), TAGS_DIR + '/1.8/ruby/command_line/'],
+                        [%r(^.*/library/),      TAGS_DIR + '/1.8/ruby/library/'],
+                        [/_spec.rb$/,       '_tags.txt']
+                      ]
 end

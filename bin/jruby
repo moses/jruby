@@ -15,18 +15,8 @@ cygwin=false
 
 # ----- Identify OS we are running under --------------------------------------
 case "`uname`" in
-CYGWIN*) cygwin=true;;
-Darwin) darwin=true;;
-esac
-
-#
-# Figure out the OS and cpu the same as JNA would, so the library path can be set
-#
-case "`uname -m`" in
-  i[34567]86) JNA_CPU=i386; JNA_ALT_CPU=amd64;;
-  i86pc) JNA_CPU="x86"; JNA_ALT_CPU=amd64;;
-  amd64|x86_64) JNA_CPU=amd64; JNA_ALT_CPU=i386;;
-  sparc*) JNA_CPU=sparc; JNA_ALT_CPU=sparcv9;;
+  CYGWIN*) cygwin=true;;
+  Darwin) darwin=true;;
 esac
 
 # ----- Verify and Set Required Environment Variables -------------------------
@@ -61,6 +51,29 @@ if [ -z "$JRUBY_OPTS" ] ; then
   JRUBY_OPTS=""
 fi
 
+JRUBY_OPTS_SPECIAL="--ng" # space-separated list of special flags
+unset JRUBY_OPTS_TEMP
+function process_special_opts {
+    case $1 in
+        --ng) nailgun_client=true;;
+        *) break;;
+    esac
+}
+for opt in ${JRUBY_OPTS[@]}; do
+    for special in ${JRUBY_OPTS_SPECIAL[@]}; do
+        if [ $opt != $special ]; then
+            JRUBY_OPTS_TEMP="${JRUBY_OPTS_TEMP} $opt"
+        else
+            # make sure flags listed in JRUBY_OPTS_SPECIAL are processed
+            case "$opt" in
+            --ng)
+                process_special_opts $opt;;
+            esac
+        fi
+    done
+done
+JRUBY_OPTS=${JRUBY_OPTS_TEMP}
+
 if [ -z "$JAVA_HOME" ] ; then
   JAVA_CMD='java'
 else
@@ -78,12 +91,12 @@ JRUBY_SHELL=/bin/sh
 
 # ----- Set Up The Boot Classpath -------------------------------------------
 
-CP_DELIMETER=":"
+CP_DELIMITER=":"
 
 # add jruby jars for command-line execution
-for j in "$JRUBY_HOME"/lib/{jruby*,bsf}.jar; do
+for j in "$JRUBY_HOME"/lib/jruby.jar; do
     if [ "$JRUBY_CP" ]; then
-        JRUBY_CP="$JRUBY_CP$CP_DELIMETER$j"
+        JRUBY_CP="$JRUBY_CP$CP_DELIMITER$j"
         else
         JRUBY_CP="$j"
     fi
@@ -100,17 +113,22 @@ if [ "$JRUBY_PARENT_CLASSPATH" != "" ]; then
     CP=$JRUBY_PARENT_CLASSPATH
 else
     # add other jars in lib to CP for command-line execution
-    for j in "$JRUBY_HOME"/lib/*.jar; do
+    for j in "$JRUBY_HOME"/lib/profile.jar; do
         if [ "$CP" ]; then
-            CP="$CP$CP_DELIMETER$j"
+            CP="$CP$CP_DELIMITER$j"
             else
             CP="$j"
         fi
     done
 
     if $cygwin; then
-	CP=`cygpath -p -w "$CP"`
+        CP=`cygpath -p -w "$CP"`
     fi
+fi
+
+if $cygwin; then
+    # switch delimiter only after building Unix style classpaths
+    CP_DELIMITER=";"
 fi
 
 # ----- Execute The Requested Command -----------------------------------------
@@ -124,16 +142,12 @@ if [ -z "$JAVA_STACK" ] ; then
 fi
 
 JAVA_VM=-client
+JAVA_ENCODING=""
 
 declare -a java_args
 declare -a ruby_args
 
 java_class=org.jruby.Main
-
-# Force file.encoding to UTF-8 when on Mac, since Apple JDK defaults to MacRoman (JRUBY-3576)
-if $darwin; then
-  java_args=("${java_args[@]}" "-Dfile.encoding=UTF-8")
-fi
 
 # Split out any -J argument for passing to the JVM.
 # Scanning for args is aborted by '--'.
@@ -155,10 +169,20 @@ do
             $JAVA_CMD -X
             echo "(Prepend -J in front of these options when using 'jruby' command)" 
             exit
+        elif [ "${val}" = "-classpath" ]; then
+            CP="$CP$CP_DELIMITER$2"
+            CLASSPATH=""
+            shift
+        elif [ "${val}" = "-cp" ]; then
+            CP="$CP$CP_DELIMITER$2"
+            CLASSPATH=""
+            shift
         else
             if [ "${val:0:3}" = "-ea" ]; then
-		VERIFY_JRUBY="yes"
-	    fi
+                VERIFY_JRUBY="yes"
+            elif [ "${val:0:16}" = "-Dfile.encoding=" ]; then
+                JAVA_ENCODING=$val
+            fi
             java_args=("${java_args[@]}" "${1:2}")
         fi
         ;;
@@ -202,10 +226,6 @@ do
         JAVA_VM=-server ;;
      --sample)
         java_args=("${java_args[@]}" "-Xprof") ;;
-     --1.9)
-        java_args=("${java_args[@]}" "-Djruby.compat.version=RUBY1_9") ;;
-     --1.8)
-        java_args=("${java_args[@]}" "-Djruby.compat.version=RUBY1_8") ;;
      --ng-server)
         # Start up as Nailgun server
         java_class=com.martiansoftware.nailgun.NGServer
@@ -213,7 +233,7 @@ do
         VERIFY_JRUBY=true ;;
      --ng)
         # Use native Nailgun client to toss commands to server
-        nailgun_client=true ;;
+        process_special_opts "--ng" ;;
      # Abort processing on the double dash
      --) break ;;
      # Other opts go to ruby
@@ -225,7 +245,7 @@ do
 done
 
 # Force file.encoding to UTF-8 when on Mac, since Apple JDK defaults to MacRoman (JRUBY-3576)
-if [ `uname -s` = "Darwin" ]; then
+if [[ $darwin && -z "$JAVA_ENCODING" ]]; then
   java_args=("${java_args[@]}" "-Dfile.encoding=UTF-8")
 fi
 
@@ -239,13 +259,6 @@ ruby_args=("${ruby_args[@]}" "$@")
 set -- "${ruby_args[@]}"
 
 JAVA_OPTS="$JAVA_OPTS $JAVA_MEM $JAVA_STACK"
-JNA_OS="`uname -s | tr '[:upper:]' '[:lower:]'`"
-case "$JNA_OS" in
-darwin) JNA_PATH="$JRUBY_HOME/lib/native/darwin";;
-  *) JNA_PATH="$JRUBY_HOME/lib/native/${JNA_OS}-${JNA_CPU}:$JRUBY_HOME/lib/native/${JNA_OS}-${JNA_ALT_CPU}";;
-esac
-#JAVA_OPTS="$JAVA_OPTS -Djna.boot.library.path=$JNA_PATH"
-JAVA_JNA="-Djna.boot.library.path=$JNA_PATH"
 
 JFFI_BOOT=""
 for d in $JRUBY_HOME/lib/native/*`uname -s`; do
@@ -269,15 +282,18 @@ if $cygwin; then
   fi
 
   # fix JLine to use UnixTerminal
-  stty -icanon min 1 -echo
-  JAVA_OPTS="$JAVA_OPTS -Djline.terminal=jline.UnixTerminal"
+  stty -icanon min 1 -echo > /dev/null 2>&1
+  if [ $? = 0 ]; then
+    JAVA_OPTS="$JAVA_OPTS -Djline.terminal=jline.UnixTerminal"
+  fi
+
 fi
 
 if [ "$nailgun_client" != "" ]; then
   if [ -f $JRUBY_HOME/tool/nailgun/ng ]; then
     exec $JRUBY_HOME/tool/nailgun/ng org.jruby.util.NailMain $JRUBY_OPTS "$@"
   else
-    echo "error: ng executable not found; run 'make' in tool/nailgun"
+    echo "error: ng executable not found; run 'make' in ${JRUBY_HOME}/tool/nailgun"
     exit 1
   fi
 else
@@ -286,7 +302,7 @@ if [ "$VERIFY_JRUBY" != "" ]; then
       echo "Running with instrumented profiler"
   fi
 
-  "$JAVA_CMD" $PROFILE_ARGS $JAVA_OPTS "$JAVA_JNA" "$JFFI_OPTS" "${java_args[@]}" -classpath "$JRUBY_CP$CP_DELIMETER$CP$CP_DELIMETER$CLASSPATH" \
+  "$JAVA_CMD" $PROFILE_ARGS $JAVA_OPTS "$JFFI_OPTS" "${java_args[@]}" -classpath "$JRUBY_CP$CP_DELIMITER$CP$CP_DELIMITER$CLASSPATH" \
     "-Djruby.home=$JRUBY_HOME" \
     "-Djruby.lib=$JRUBY_HOME/lib" -Djruby.script=jruby \
     "-Djruby.shell=$JRUBY_SHELL" \
@@ -302,14 +318,14 @@ if [ "$VERIFY_JRUBY" != "" ]; then
   fi
 
   if $cygwin; then
-    stty icanon echo
+    stty icanon echo > /dev/null 2>&1
   fi
 
   exit $JRUBY_STATUS
 else
   if $cygwin; then
     # exec doed not work correctly with cygwin bash
-    "$JAVA_CMD" $JAVA_OPTS "$JAVA_JNA" "$JFFI_OPTS" "${java_args[@]}" -Xbootclasspath/a:"$JRUBY_CP" -classpath "$CP$CP_DELIMETER$CLASSPATH" \
+    "$JAVA_CMD" $JAVA_OPTS "$JFFI_OPTS" "${java_args[@]}" -Xbootclasspath/a:"$JRUBY_CP" -classpath "$CP$CP_DELIMITER$CLASSPATH" \
       "-Djruby.home=$JRUBY_HOME" \
       "-Djruby.lib=$JRUBY_HOME/lib" -Djruby.script=jruby \
       "-Djruby.shell=$JRUBY_SHELL" \
@@ -318,11 +334,11 @@ else
     # Record the exit status immediately, or it will be overridden.
     JRUBY_STATUS=$?
 
-    stty icanon echo
+    stty icanon echo > /dev/null 2>&1
 
     exit $JRUBY_STATUS
   else
-    exec "$JAVA_CMD" $JAVA_OPTS "$JAVA_JNA" "$JFFI_OPTS" "${java_args[@]}" -Xbootclasspath/a:"$JRUBY_CP" -classpath "$CP$CP_DELIMETER$CLASSPATH" \
+    exec "$JAVA_CMD" $JAVA_OPTS "$JFFI_OPTS" "${java_args[@]}" -Xbootclasspath/a:"$JRUBY_CP" -classpath "$CP$CP_DELIMITER$CLASSPATH" \
       "-Djruby.home=$JRUBY_HOME" \
       "-Djruby.lib=$JRUBY_HOME/lib" -Djruby.script=jruby \
       "-Djruby.shell=$JRUBY_SHELL" \

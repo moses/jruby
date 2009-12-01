@@ -1,5 +1,4 @@
 require 'rubygems/config_file'
-require 'etc'
 
 module Gem
 
@@ -9,7 +8,7 @@ module Gem
   class << self
     alias_method :original_ensure_gem_subdirectories, :ensure_gem_subdirectories
     def ensure_gem_subdirectories(gemdir)
-      original_ensure_gem_subdirectories(gemdir) if writable_path? gemdir
+      original_ensure_gem_subdirectories(gemdir) if writable_path? gemdir.to_s
     end
 
     alias_method :original_set_paths, :set_paths
@@ -35,21 +34,6 @@ module Gem
   def self.default_dir
     # TODO: use ~/.gems as the default dir when running under the complete jar, so the user can install gems?
     File.join ConfigMap[:libdir], 'ruby', 'gems', ConfigMap[:ruby_version]
-  end
-
-  ##
-  # The path to the running Ruby interpreter.
-  #
-  # JRuby: Don't append ConfigMap[:EXEEXT] to @jruby, since that would
-  # make it jruby.bat.bat on Windows.
-  def self.ruby
-    if @ruby.nil? then
-      @ruby = File.join(ConfigMap[:bindir],
-                        ConfigMap[:ruby_install_name])
-      # @ruby << ConfigMap[:EXEEXT]
-    end
-
-    @ruby
   end
 
   ##
@@ -82,8 +66,8 @@ class Gem::SourceIndex
     end
 
     def spec_directories_from_classpath
-      require 'jruby'
-      JRuby.runtime.getJRubyClassLoader.getResources("specifications").map {|u| u.getFile }
+      require 'jruby/util'
+      stuff = JRuby::Util.classloader_resources("specifications")
     end
   end
 end
@@ -96,4 +80,3 @@ if (Gem::win_platform?)
     end
   end
 end
-

@@ -43,6 +43,8 @@ test_exception { serv.close }
 ### UDP ###
 
 test_ok(UDPSocket::open)
+# JRUBY-3849
+test_ok(UDPSocket::new(Socket::AF_INET))
 
 port = 4321
 
@@ -129,6 +131,11 @@ client.close
 t.join
 
 test_equal('abcdefghij' + str, t.value)
+
+#JRUBY-2666
+empty_host_addr_info = Socket::getaddrinfo("", "http", Socket::AF_INET, Socket::SOCK_STREAM,
+  Socket::IPPROTO_TCP, Socket::AI_PASSIVE)
+test_equal([["AF_INET", 80, "0.0.0.0", "0.0.0.0", Socket::AF_INET, Socket::SOCK_STREAM, Socket::IPPROTO_TCP]], empty_host_addr_info)
 
 # test that raising inside an accepting thread doesn't nuke the socket
 # ** Currently FAILING on Windows and Solaris -- the

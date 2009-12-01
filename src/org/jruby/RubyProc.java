@@ -141,6 +141,7 @@ public class RubyProc extends RubyObject implements JumpTarget, DataType {
             StaticScope oldScope = block.getBody().getStaticScope();
             StaticScope newScope = new BlockStaticScope(oldScope.getEnclosingScope(), oldScope.getVariables());
             newScope.setBackrefLastlineScope(true);
+            newScope.setPreviousCRefScope(oldScope.getPreviousCRefScope());
             newScope.setModule(oldScope.getModule());
             block.getBody().setStaticScope(newScope);
         }
@@ -178,7 +179,7 @@ public class RubyProc extends RubyObject implements JumpTarget, DataType {
     public IRubyObject op_equal(IRubyObject other) {
         if (!(other instanceof RubyProc)) return getRuntime().getFalse();
         
-        if (this == other || this.block == ((RubyProc)other).block) {
+        if (this == other || this.block.equals(((RubyProc)other).block)) {
             return getRuntime().getTrue();
         }
         

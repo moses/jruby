@@ -59,6 +59,7 @@ import org.jruby.ast.ForNode;
 import org.jruby.ast.GlobalAsgnNode;
 import org.jruby.ast.GlobalVarNode;
 import org.jruby.ast.HashNode;
+import org.jruby.ast.Hash19Node;
 import org.jruby.ast.IArgumentNode;
 import org.jruby.ast.IScopingNode;
 import org.jruby.ast.IfNode;
@@ -239,8 +240,10 @@ public class ASTInspector {
     }
     
     public void inspect(Node node) {
-        // TODO: This code effectively disables all inspection-based optimizations; none of them are 100% safe yet
-        if (!ENABLED) disable();
+        if (!ENABLED || RubyInstanceConfig.FULL_TRACE_ENABLED) {
+            disable();
+            return;
+        }
 
         if (node == null) return;
         

@@ -30,7 +30,11 @@
  ***** END LICENSE BLOCK *****/
 package org.jruby.internal.runtime;
 
+import java.io.IOException;
 import java.lang.ref.SoftReference;
+import java.nio.channels.Channel;
+import java.nio.channels.SelectableChannel;
+import java.nio.channels.Selector;
 import java.util.concurrent.locks.ReentrantLock;
 
 import java.util.ArrayList;
@@ -41,6 +45,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Future;
 import org.jruby.Ruby;
+import org.jruby.RubyIO;
 import org.jruby.RubyThread;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.runtime.ThreadContext;
@@ -193,6 +198,10 @@ public class ThreadService {
 
     public synchronized void associateThread(Object threadOrFuture, RubyThread rubyThread) {
         rubyThreadMap.put(threadOrFuture, rubyThread);
+    }
+
+    public synchronized void dissociateThread(Object threadOrFuture) {
+        rubyThreadMap.remove(threadOrFuture);
     }
     
     public synchronized void unregisterThread(RubyThread thread) {

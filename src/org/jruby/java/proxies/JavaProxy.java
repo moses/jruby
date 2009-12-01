@@ -1,41 +1,87 @@
 package org.jruby.java.proxies;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import org.jruby.Ruby;
+import org.jruby.RubyArray;
 import org.jruby.RubyClass;
 import org.jruby.RubyHash;
 import org.jruby.RubyHash.Visitor;
+import org.jruby.RubyMethod;
 import org.jruby.RubyModule;
 import org.jruby.RubyObject;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.java.invokers.InstanceFieldGetter;
 import org.jruby.java.invokers.InstanceFieldSetter;
+import org.jruby.java.invokers.InstanceMethodInvoker;
+import org.jruby.java.invokers.MethodInvoker;
+import org.jruby.java.invokers.StaticMethodInvoker;
 import org.jruby.javasupport.Java;
 import org.jruby.javasupport.JavaClass;
+import org.jruby.javasupport.JavaMethod;
 import org.jruby.javasupport.JavaObject;
 import org.jruby.javasupport.util.RuntimeHelpers;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
+import org.jruby.util.ByteList;
+import org.jruby.util.CodegenUtils;
 
 public class JavaProxy extends RubyObject {
-    protected final RubyClass.VariableAccessor objectAccessor;
+    private JavaObject javaObject;
+    private Object object;
+    
     public JavaProxy(Ruby runtime, RubyClass klazz) {
         super(runtime, klazz);
-        objectAccessor = klazz.getVariableAccessorForWrite("__wrap_struct__");
     }
 
     public Object dataGetStruct() {
-        return objectAccessor.get(this);
+        lazyJavaObject();
+        return javaObject;
     }
 
     public void dataWrapStruct(Object object) {
-        objectAccessor.set(this, object);
+        this.javaObject = (JavaObject)object;
+        this.object = javaObject.getValue();
+    }
+
+    public Object getObject() {
+        // FIXME: Added this because marshal_spec seemed to reconstitute objects without calling dataWrapStruct
+        // this resulted in object being null after unmarshalling...
+        if (object == null) {
+            if (javaObject == null) {
+                throw getRuntime().newRuntimeError("Java wrapper with no contents: " + this);
+            } else {
+                object = javaObject.getValue();
+            }
+        }
+        return object;
+    }
+
+    public void setObject(Object object) {
+        this.object = object;
+    }
+
+    private JavaObject getJavaObject() {
+        lazyJavaObject();
+        return (JavaObject)dataGetStruct();
+    }
+
+    private void lazyJavaObject() {
+        if (javaObject == null) {
+            javaObject = JavaObject.wrap(getRuntime(), object);
+        }
     }
     
     public static RubyClass createJavaProxy(ThreadContext context) {
@@ -84,6 +130,14 @@ public class JavaProxy extends RubyObject {
         } else {
             return Java.get_proxy_class(javaClass, RuntimeHelpers.invoke(context, javaClass, "array_class"));
         }
+    }
+
+    @Override
+    public IRubyObject initialize_copy(IRubyObject original) {
+        super.initialize_copy(original);
+        // because we lazily init JavaObject in the data-wrapped slot, explicitly copy over the object
+        setObject(((JavaProxy)original).object);
+        return this;
     }
 
     private static Class<?> getJavaClass(ThreadContext context, RubyModule module) {
@@ -190,28 +244,159 @@ public class JavaProxy extends RubyObject {
 
         return context.getRuntime().getNil();
     }
-    
-    @JRubyMethod(meta = true)
-    public static IRubyObject new_instance_for(IRubyObject recv, IRubyObject arg0) {
-        return Java.new_instance_for(recv, arg0);
-    }
 
     @JRubyMethod(meta = true)
     public static IRubyObject to_java_object(IRubyObject recv) {
-        return Java.to_java_object(recv);
+        return recv.getInstanceVariables().fastGetInstanceVariable("@java_class");
     }
 
     @JRubyMethod(name = "equal?")
     public IRubyObject equal_p(ThreadContext context, IRubyObject other) {
         Ruby runtime = context.getRuntime();
-        if (other.dataGetStruct() instanceof JavaObject) {
-            boolean equal = unwrap() == ((JavaObject)other.dataGetStruct()).getValue();
+        if (other instanceof JavaProxy) {
+            boolean equal = getObject() == ((JavaProxy)other).getObject();
             return runtime.newBoolean(equal);
         }
         return runtime.getFalse();
     }
+
+    @JRubyMethod(backtrace = true)
+    public IRubyObject java_send(ThreadContext context, IRubyObject rubyName) {
+        String name = rubyName.asJavaString();
+        Ruby runtime = context.getRuntime();
+        
+        JavaMethod method = new JavaMethod(runtime, getMethod(name));
+        return method.invokeDirect(getObject());
+    }
+
+    @JRubyMethod(backtrace = true)
+    public IRubyObject java_send(ThreadContext context, IRubyObject rubyName, IRubyObject argTypes) {
+        throw context.getRuntime().newArgumentError(2, 3);
+    }
+
+    @JRubyMethod(backtrace = true)
+    public IRubyObject java_send(ThreadContext context, IRubyObject rubyName, IRubyObject argTypes, IRubyObject arg0) {
+        String name = rubyName.asJavaString();
+        RubyArray argTypesAry = argTypes.convertToArray();
+        Ruby runtime = context.getRuntime();
+
+        if (argTypesAry.size() != 1) {
+            throw JavaMethod.newArgSizeMismatchError(runtime, argTypesAry.size(), 1);
+        }
+
+        Class argTypeClass = (Class)argTypesAry.eltInternal(0).toJava(Class.class);
+
+        JavaMethod method = new JavaMethod(runtime, getMethod(name, argTypeClass));
+        return method.invokeDirect(getObject(), arg0.toJava(argTypeClass));
+    }
+
+    @JRubyMethod(required = 4, rest = true, backtrace = true)
+    public IRubyObject java_send(ThreadContext context, IRubyObject[] args) {
+        Ruby runtime = context.getRuntime();
+        
+        String name = args[0].asJavaString();
+        RubyArray argTypesAry = args[1].convertToArray();
+        int argsLen = args.length - 2;
+
+        if (argTypesAry.size() != argsLen) {
+            throw JavaMethod.newArgSizeMismatchError(runtime, argTypesAry.size(), argsLen);
+        }
+
+        Class[] argTypesClasses = (Class[])argTypesAry.toArray(new Class[argsLen]);
+
+        Object[] argsAry = new Object[argsLen];
+        for (int i = 0; i < argsLen; i++) {
+            argsAry[i] = args[i + 2].toJava(argTypesClasses[i]);
+        }
+
+        JavaMethod method = new JavaMethod(runtime, getMethod(name, argTypesClasses));
+        return method.invokeDirect(getObject(), argsAry);
+    }
+
+    @JRubyMethod(backtrace = true)
+    public IRubyObject java_method(ThreadContext context, IRubyObject rubyName) {
+        String name = rubyName.asJavaString();
+
+        return getRubyMethod(name);
+    }
+
+    @JRubyMethod(backtrace = true)
+    public IRubyObject java_method(ThreadContext context, IRubyObject rubyName, IRubyObject argTypes) {
+        String name = rubyName.asJavaString();
+        RubyArray argTypesAry = argTypes.convertToArray();
+        Class[] argTypesClasses = (Class[])argTypesAry.toArray(new Class[argTypesAry.size()]);
+
+        return getRubyMethod(name, argTypesClasses);
+    }
+
+    @JRubyMethod(frame = true)
+    public IRubyObject marshal_dump() {
+        if (Serializable.class.isAssignableFrom(object.getClass())) {
+            try {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(baos);
+
+                oos.writeObject(object);
+
+                return getRuntime().newString(new ByteList(baos.toByteArray()));
+            } catch (IOException ioe) {
+                throw getRuntime().newIOErrorFromException(ioe);
+            }
+        } else {
+            throw getRuntime().newTypeError("no marshal_dump is defined for class " + getJavaClass());
+        }
+    }
+
+    @JRubyMethod(frame = true)
+    public IRubyObject marshal_load(ThreadContext context, IRubyObject str) {
+        try {
+            ByteList byteList = str.convertToString().getByteList();
+            ByteArrayInputStream bais = new ByteArrayInputStream(byteList.bytes, byteList.begin, byteList.realSize);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+
+            object = ois.readObject();
+
+            return this;
+        } catch (IOException ioe) {
+            throw context.getRuntime().newIOErrorFromException(ioe);
+        } catch (ClassNotFoundException cnfe) {
+            throw context.getRuntime().newTypeError("Class not found unmarshaling Java type: " + cnfe.getLocalizedMessage());
+        }
+    }
+
+    private Method getMethod(String name, Class... argTypes) {
+        Class jclass = getJavaObject().getJavaClass();
+        try {
+            return jclass.getMethod(name, argTypes);
+        } catch (NoSuchMethodException nsme) {
+            throw JavaMethod.newMethodNotFoundError(getRuntime(), jclass, name + CodegenUtils.prettyParams(argTypes), name);
+        }
+    }
+
+    private MethodInvoker getMethodInvoker(Method method) {
+        if (Modifier.isStatic(method.getModifiers())) {
+            return new StaticMethodInvoker(metaClass.getMetaClass(), method);
+        } else {
+            return new InstanceMethodInvoker(metaClass, method);
+        }
+    }
+
+    private RubyMethod getRubyMethod(String name, Class... argTypes) {
+        Method jmethod = getMethod(name, argTypes);
+        if (Modifier.isStatic(jmethod.getModifiers())) {
+            return RubyMethod.newMethod(metaClass.getSingletonClass(), CodegenUtils.prettyParams(argTypes), metaClass.getSingletonClass(), name, getMethodInvoker(jmethod), getMetaClass());
+        } else {
+            return RubyMethod.newMethod(metaClass, CodegenUtils.prettyParams(argTypes), metaClass, name, getMethodInvoker(jmethod), this);
+        }
+    }
+
+    @Override
+    public Object toJava(Class type) {
+        getRuntime().getJavaSupport().getObjectProxyCache().put(getObject(), this);
+        return getObject();
+    }
     
     public Object unwrap() {
-        return ((JavaObject)dataGetStruct()).getValue();
+        return getObject();
     }
 }

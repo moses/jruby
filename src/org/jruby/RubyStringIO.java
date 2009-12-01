@@ -31,6 +31,7 @@
 package org.jruby;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.jruby.anno.FrameField;
@@ -48,6 +49,8 @@ import org.jruby.util.TypeConverter;
 import org.jruby.util.io.InvalidValueException;
 import org.jruby.util.io.ModeFlags;
 import org.jruby.util.io.Stream;
+
+import static org.jruby.RubyEnumerator.enumeratorize;
 
 @JRubyClass(name="StringIO")
 public class RubyStringIO extends RubyObject {
@@ -244,7 +247,6 @@ public class RubyStringIO extends RubyObject {
         return getRuntime().newBoolean(closedWrite);
     }
 
-    @JRubyMethod(name = "each", optional = 1, frame = true, writes = FrameField.LASTLINE)
     public IRubyObject each(ThreadContext context, IRubyObject[] args, Block block) {
         IRubyObject line = getsOnly(context, args);
        
@@ -256,7 +258,21 @@ public class RubyStringIO extends RubyObject {
         return this;
     }
 
-    @JRubyMethod(name = "each_byte", frame = true)
+    @JRubyMethod(name = "each", optional = 1, frame = true, writes = FrameField.LASTLINE)
+    public IRubyObject each19(ThreadContext context, IRubyObject[] args, Block block) {
+        return block.isGiven() ? each(context, args, block) : enumeratorize(context.getRuntime(), this, "each", args);
+    }
+
+    @JRubyMethod(name = "each_line", optional = 1, frame = true)
+    public IRubyObject each_line(ThreadContext context, IRubyObject[] args, Block block) {
+        return block.isGiven() ? each(context, args, block) : enumeratorize(context.getRuntime(), this, "each_line", args);
+    }
+
+    @JRubyMethod(name = "lines", optional = 1, frame = true)
+    public IRubyObject lines(ThreadContext context, IRubyObject[] args, Block block) {
+        return block.isGiven() ? each(context, args, block) : enumeratorize(context.getRuntime(), this, "lines", args);
+    }
+
     public IRubyObject each_byte(ThreadContext context, Block block) {
         checkReadable();
         Ruby runtime = context.getRuntime();
@@ -267,12 +283,47 @@ public class RubyStringIO extends RubyObject {
         while (pos < bytes.length()) {
             block.yield(context, runtime.newFixnum(bytes.get((int) pos++) & 0xFF));
         }
-        return runtime.getNil();
+        return this;
     }
 
-    @JRubyMethod(name = "each_line", optional = 1, frame = true)
-    public IRubyObject each_line(ThreadContext context, IRubyObject[] args, Block block) {
-        return each(context, args, block);
+    @JRubyMethod(name = "each_byte", frame = true)
+    public IRubyObject each_byte19(ThreadContext context, Block block) {
+        return block.isGiven() ? each_byte(context, block) : enumeratorize(context.getRuntime(), this, "each_byte");
+    }
+
+    @JRubyMethod(name = "bytes", frame = true)
+    public IRubyObject bytes(ThreadContext context, Block block) {
+        return block.isGiven() ? each_byte(context, block) : enumeratorize(context.getRuntime(), this, "bytes");
+    }
+
+    public IRubyObject each_char(final ThreadContext context, final Block block) {
+        checkReadable();
+
+        Ruby runtime = context.getRuntime();
+        ByteList bytes = internal.getByteList();
+        int len = bytes.realSize;
+        while (pos < len) {
+            int pos = (int)this.pos;
+            byte c = bytes.bytes[bytes.begin + pos];
+            int n = runtime.getKCode().getEncoding().length(c);
+            if(len < pos + n) {
+                n = len - pos;
+            }
+            this.pos += n;
+            block.yield(context, internal.substr19(runtime, pos, n));
+        }
+
+        return this;
+    }
+
+    @JRubyMethod(name = "each_char", frame = true)
+    public IRubyObject each_char19(final ThreadContext context, final Block block) {
+        return block.isGiven() ? each_char(context, block) : enumeratorize(context.getRuntime(), this, "each_char");
+    }
+
+    @JRubyMethod(name = "chars", frame = true)
+    public IRubyObject chars19(final ThreadContext context, final Block block) {
+        return block.isGiven() ? each_char(context, block) : enumeratorize(context.getRuntime(), this, "chars");
     }
 
     @JRubyMethod(name = {"eof", "eof?"})
@@ -304,7 +355,7 @@ public class RubyStringIO extends RubyObject {
         return RubyFixnum.zero(getRuntime());
     }
 
-    @JRubyMethod(name = "getc")
+    @JRubyMethod(name = {"getc", "getbyte"})
     public IRubyObject getc() {
         checkReadable();
         if (pos >= internal.getByteList().length()) {
@@ -642,7 +693,7 @@ public class RubyStringIO extends RubyObject {
         return originalString != null ? originalString : getRuntime().newString(buf);
     }
 
-    @JRubyMethod(name = "readchar")
+    @JRubyMethod(name = {"readchar", "readbyte"})
     public IRubyObject readchar() {
         IRubyObject c = getc();
         
@@ -703,8 +754,7 @@ public class RubyStringIO extends RubyObject {
 
     @JRubyMethod(name = "seek", required = 1, optional = 1, frame=true)
     public IRubyObject seek(IRubyObject[] args) {
-        // MRI 1.8.7 behavior:
-        // checkOpen();
+        checkOpen();
         checkFinalized();
         long amount = RubyNumeric.num2long(args[0]);
         int whence = Stream.SEEK_SET;
@@ -757,7 +807,7 @@ public class RubyStringIO extends RubyObject {
         IRubyObject obj = read(args);
 
         if (isEOF()) {
-            if (obj.isNil() || ((RubyString) obj).getByteList().length() == 0) {
+            if (obj.isNil()) {
                 throw getRuntime().newEOFError();
             }
         }
@@ -775,7 +825,11 @@ public class RubyStringIO extends RubyObject {
         }
 
         internal.modify();
-        internal.getByteList().length(len);
+        ByteList buf = internal.getByteList();
+        if (len < buf.length()) {
+            Arrays.fill(buf.unsafeBytes(), len, buf.length(), (byte) 0);
+        }
+        buf.length(len);
         return arg;
     }
 

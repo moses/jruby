@@ -11,8 +11,10 @@ package org.jruby.compiler.impl;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.Map;
 import org.jruby.util.SafePropertyAccessor;
 import static org.jruby.util.CodegenUtils.*;
+
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Attribute;
 import org.objectweb.asm.Label;
@@ -30,11 +32,7 @@ public class SkinnyMethodAdapter implements MethodVisitor, Opcodes {
     
     /** Creates a new instance of SkinnyMethodAdapter */
     public SkinnyMethodAdapter(MethodVisitor method) {
-        if (DEBUG) {
-            this.method = new TraceMethodVisitor(method);
-        } else {
-            this.method = method;
-        }
+        setMethodVisitor(method);
     }
     
     public SkinnyMethodAdapter() {
@@ -49,6 +47,17 @@ public class SkinnyMethodAdapter implements MethodVisitor, Opcodes {
             this.method = new TraceMethodVisitor(mv);
         } else {
             this.method = mv;
+        }
+    }
+
+    /**
+     * Short-hand for specifying a set of aloads
+     *
+     * @param args list of aloads you want
+     */
+    public void aloadMany(int... args) {
+        for (int arg: args) {
+            aload(arg);
         }
     }
     
@@ -159,7 +168,6 @@ public class SkinnyMethodAdapter implements MethodVisitor, Opcodes {
         getMethodVisitor().visitMethodInsn(INVOKEINTERFACE, arg1, arg2, arg3);
     }
 
-    public static final int INVOKEDYNAMIC = 186;
     public void invokedynamic(String arg1, String arg2, String arg3) {
         getMethodVisitor().visitMethodInsn(INVOKEDYNAMIC, arg1, arg2, arg3);
     }
@@ -793,6 +801,18 @@ public class SkinnyMethodAdapter implements MethodVisitor, Opcodes {
         return getMethodVisitor().visitParameterAnnotation(arg0, arg1, arg2);
     }
 
+    public void visitAnnotationWithFields(String name, boolean visible, Map<String,Object> fields) {
+        AnnotationVisitor visitor = visitAnnotation(name, visible);
+        visitAnnotationFields(visitor, fields);
+        visitor.visitEnd();
+    }
+
+    public void visitParameterAnnotationWithFields(int param, String name, boolean visible, Map<String,Object> fields) {
+        AnnotationVisitor visitor = visitParameterAnnotation(param, name, visible);
+        visitAnnotationFields(visitor, fields);
+        visitor.visitEnd();
+    }
+
     public void visitAttribute(Attribute arg0) {
         getMethodVisitor().visitAttribute(arg0);
     }
@@ -889,5 +909,4 @@ public class SkinnyMethodAdapter implements MethodVisitor, Opcodes {
     public void visitFrame(int arg0, int arg1, Object[] arg2, int arg3, Object[] arg4) {
         getMethodVisitor().visitFrame(arg0, arg1, arg2, arg3, arg4);
     }
-
 }

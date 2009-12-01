@@ -37,6 +37,7 @@ import org.jruby.internal.runtime.methods.DynamicMethod;
 import org.jruby.internal.runtime.methods.ReflectionMethodFactory;
 import org.jruby.internal.runtime.methods.InvocationMethodFactory;
 import org.jruby.internal.runtime.methods.DumpingInvocationMethodFactory;
+import org.jruby.lexer.yacc.ISourcePosition;
 import org.jruby.parser.StaticScope;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.SafePropertyAccessor;
@@ -59,6 +60,7 @@ public abstract class MethodFactory {
      * This interface should be implemented by code calling any batched methods
      * on this MethodFactory.
      */
+    @Deprecated
     public interface MethodDefiningCallback {
         public void define(RubyModule targetMetaClass, JavaMethodDescriptor desc, DynamicMethod dynamicMethod);
     }
@@ -99,7 +101,7 @@ public abstract class MethodFactory {
     public abstract DynamicMethod getCompiledMethod(
             RubyModule implementationClass, String method, 
             Arity arity, Visibility visibility, StaticScope scope, 
-            Object scriptObject, CallConfiguration callConfig);
+            Object scriptObject, CallConfiguration callConfig, ISourcePosition position);
     
     /**
      * Like getCompiledMethod, but postpones any heavy lifting involved in
@@ -120,7 +122,7 @@ public abstract class MethodFactory {
     public abstract DynamicMethod getCompiledMethodLazily(
             RubyModule implementationClass, String method, 
             Arity arity, Visibility visibility, StaticScope scope, 
-            Object scriptObject, CallConfiguration callConfig);
+            Object scriptObject, CallConfiguration callConfig, ISourcePosition position);
     
     /**
      * Based on a list of annotated Java methods, generate a method handle using
@@ -148,6 +150,24 @@ public abstract class MethodFactory {
      * @return A method handle for the target object.
      */
     public abstract DynamicMethod getAnnotatedMethod(RubyModule implementationClass, JavaMethodDescriptor desc);
+    
+    /**
+     * Get a CompiledBlockCallback for the specified block
+     *
+     * @param method The name of the method
+     * @param scriptObject The object in which the method can be found
+     * @return A new CompiledBlockCallback for the method
+     */
+    public abstract CompiledBlockCallback getBlockCallback(String method, Object scriptObject);
+
+    /**
+     * Get a CompiledBlockCallback for the specified block
+     *
+     * @param method The name of the method
+     * @param scriptObject The object in which the method can be found
+     * @return A new CompiledBlockCallback for the method
+     */
+    public abstract CompiledBlockCallback19 getBlockCallback19(String method, Object scriptObject);
 
     /**
      * Use the reflection-based factory.

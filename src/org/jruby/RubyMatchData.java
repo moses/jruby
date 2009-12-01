@@ -45,6 +45,7 @@ import org.jruby.anno.JRubyMethod;
 import org.jruby.anno.JRubyClass;
 import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
+import org.jruby.runtime.ClassIndex;
 import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -69,6 +70,7 @@ public class RubyMatchData extends RubyObject {
         runtime.setMatchData(matchDataClass);
         runtime.defineGlobalConstant("MatchingData", matchDataClass);
         matchDataClass.kindOf = new RubyModule.KindOf() {
+            @Override
             public boolean isKindOf(IRubyObject obj, RubyModule type) {
                 return obj instanceof RubyMatchData;
             }
@@ -91,6 +93,11 @@ public class RubyMatchData extends RubyObject {
 
     public RubyMatchData(Ruby runtime, RubyClass metaClass) {
         super(runtime, metaClass);
+    }
+
+    @Override
+    public int getNativeTypeIndex() {
+        return ClassIndex.MATCH;
     }
 
     private static final class Pair implements Comparable {
@@ -214,6 +221,7 @@ public class RubyMatchData extends RubyObject {
     }
 
     @JRubyMethod(name = "inspect")
+    @Override
     public IRubyObject inspect() {
         if (str == null) return anyToString();
 
@@ -246,8 +254,7 @@ public class RubyMatchData extends RubyObject {
             if (v.isNil()) {
                 result.cat("nil".getBytes());
             } else {
-                RubyString str = (RubyString)v;
-                result.append(str.inspectCommon(runtime.is1_9()));
+                result.append(((RubyString) str).inspectCommon(runtime.is1_9()));
             }
         }
 
@@ -375,7 +382,7 @@ public class RubyMatchData extends RubyObject {
     @JRubyMethod(name = "[]", compat = CompatVersion.RUBY1_9)
     public IRubyObject op_aref19(IRubyObject idx) {
         IRubyObject result = op_arefCommon(idx);
-        return result == null ? ((RubyArray)to_a()).aref(idx) : result;
+        return result == null ? ((RubyArray)to_a()).aref19(idx) : result;
     }
 
     /** match_aref
@@ -384,7 +391,7 @@ public class RubyMatchData extends RubyObject {
     @JRubyMethod(name = "[]", compat = CompatVersion.RUBY1_9)
     public IRubyObject op_aref19(IRubyObject idx, IRubyObject rest) {
         IRubyObject result;
-        return !rest.isNil() || (result = op_arefCommon(idx)) == null ? ((RubyArray)to_a()).aref(idx, rest) : result;
+        return !rest.isNil() || (result = op_arefCommon(idx)) == null ? ((RubyArray)to_a()).aref19(idx, rest) : result;
     }
 
     private IRubyObject op_arefCommon(IRubyObject idx) {
@@ -530,6 +537,7 @@ public class RubyMatchData extends RubyObject {
      *
      */
     @JRubyMethod(name = "to_s")
+    @Override
     public IRubyObject to_s() {
         check();
         IRubyObject ss = RubyRegexp.last_match(this);
@@ -548,6 +556,7 @@ public class RubyMatchData extends RubyObject {
     }
 
     @JRubyMethod(name = "initialize_copy", required = 1)
+    @Override
     public IRubyObject initialize_copy(IRubyObject original) {
         if (this == original) return this;
         

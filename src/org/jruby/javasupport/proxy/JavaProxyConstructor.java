@@ -41,7 +41,6 @@ import org.jruby.RubyProc;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.exceptions.RaiseException;
 import org.jruby.internal.runtime.methods.DynamicMethod;
-import org.jruby.javasupport.Java;
 import org.jruby.javasupport.JavaObject;
 import org.jruby.javasupport.JavaUtil;
 import org.jruby.javasupport.ParameterTypes;
@@ -157,7 +156,6 @@ public class JavaProxyConstructor extends JavaProxyReflectionObject implements P
 
         final IRubyObject self = args[0];
         final Ruby runtime = self.getRuntime();
-        final RubyModule javaUtilities = runtime.getJavaSupport().getJavaUtilitiesModule();
         RubyArray constructor_args = (RubyArray) args[1];
         Class<?>[] parameterTypes = getParameterTypes();
         int count = (int) constructor_args.length().getLongValue();
@@ -166,7 +164,7 @@ public class JavaProxyConstructor extends JavaProxyReflectionObject implements P
         for (int i = 0; i < count; i++) {
             // TODO: call ruby method
             IRubyObject ith = constructor_args.aref(getRuntime().newFixnum(i));
-            converted[i] = JavaUtil.convertArgument(getRuntime(), Java.ruby_to_java(this, ith, Block.NULL_BLOCK), parameterTypes[i]);
+            converted[i] = ith.toJava(parameterTypes[i]);
         }
 
         JavaProxyInvocationHandler handler = new JavaProxyInvocationHandler() {
@@ -180,17 +178,14 @@ public class JavaProxyConstructor extends JavaProxyReflectionObject implements P
                 int v = method.getArity().getValue();
                 IRubyObject[] newArgs = new IRubyObject[nargs.length];
                 for (int i = nargs.length; --i >= 0; ) {
-                    newArgs[i] = Java.java_to_ruby(
-                            javaUtilities,
-                            JavaObject.wrap(runtime, nargs[i]),
-                            Block.NULL_BLOCK);
+                    newArgs[i] = JavaUtil.convertJavaToUsableRubyObject(runtime, nargs[i]);
                 }
                 
                 if (v < 0 || v == (newArgs.length)) {
-                    return JavaUtil.convertRubyToJava(RuntimeHelpers.invoke(runtime.getCurrentContext(), self, name, newArgs), m.getReturnType());
+                    return RuntimeHelpers.invoke(runtime.getCurrentContext(), self, name, newArgs).toJava(m.getReturnType());
                 } else {
                     RubyClass superClass = self.getMetaClass().getSuperClass();
-                    return JavaUtil.convertRubyToJava(RuntimeHelpers.invokeAs(runtime.getCurrentContext(), superClass, self, name, newArgs, Block.NULL_BLOCK), m.getReturnType());
+                    return RuntimeHelpers.invokeAs(runtime.getCurrentContext(), superClass, self, name, newArgs, Block.NULL_BLOCK).toJava(m.getReturnType());
                 }
             }
         };
@@ -207,7 +202,6 @@ public class JavaProxyConstructor extends JavaProxyReflectionObject implements P
     
     public JavaObject newInstance(final IRubyObject self, Object[] args) {
         final Ruby runtime = self.getRuntime();
-        final RubyModule javaUtilities = runtime.getJavaSupport().getJavaUtilitiesModule();
 
         JavaProxyInvocationHandler handler = new JavaProxyInvocationHandler() {
             public IRubyObject getOrig() {
@@ -220,17 +214,14 @@ public class JavaProxyConstructor extends JavaProxyReflectionObject implements P
                 int v = method.getArity().getValue();
                 IRubyObject[] newArgs = new IRubyObject[nargs.length];
                 for (int i = nargs.length; --i >= 0; ) {
-                    newArgs[i] = Java.java_to_ruby(
-                            javaUtilities,
-                            JavaObject.wrap(runtime, nargs[i]),
-                            Block.NULL_BLOCK);
+                    newArgs[i] = JavaUtil.convertJavaToUsableRubyObject(runtime, nargs[i]);
                 }
                 
                 if (v < 0 || v == (newArgs.length)) {
-                    return JavaUtil.convertRubyToJava(RuntimeHelpers.invoke(runtime.getCurrentContext(), self, name, newArgs), m.getReturnType());
+                    return RuntimeHelpers.invoke(runtime.getCurrentContext(), self, name, newArgs).toJava(m.getReturnType());
                 } else {
                     RubyClass superClass = self.getMetaClass().getSuperClass();
-                    return JavaUtil.convertRubyToJava(RuntimeHelpers.invokeAs(runtime.getCurrentContext(), superClass, self, name, newArgs, Block.NULL_BLOCK), m.getReturnType());
+                    return RuntimeHelpers.invokeAs(runtime.getCurrentContext(), superClass, self, name, newArgs, Block.NULL_BLOCK).toJava(m.getReturnType());
                 }
             }
         };
@@ -270,7 +261,7 @@ public class JavaProxyConstructor extends JavaProxyReflectionObject implements P
         for (int i = 0; i < count; i++) {
             // TODO: call ruby method
             IRubyObject ith = constructor_args.aref(getRuntime().newFixnum(i));
-            converted[i] = JavaUtil.convertArgument(getRuntime(), Java.ruby_to_java(this, ith, Block.NULL_BLOCK), parameterTypes[i]);
+            converted[i] = ith.toJava(parameterTypes[i]);
         }
 
         final IRubyObject recv = this;
@@ -291,8 +282,7 @@ public class JavaProxyConstructor extends JavaProxyReflectionObject implements P
                             nargs[i]);
                 }
                 IRubyObject call_result = proc.call(getRuntime().getCurrentContext(), rubyArgs);
-                Object converted_result = JavaUtil.convertRubyToJava(
-                        call_result, method.getReturnType());
+                Object converted_result = call_result.toJava(method.getReturnType());
                 return converted_result;
             }
 

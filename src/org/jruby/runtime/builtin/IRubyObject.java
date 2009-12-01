@@ -233,6 +233,13 @@ public interface IRubyObject {
     IRubyObject checkArrayType();
 
     /**
+     * Convert the object to the specified Java class, if possible.
+     *
+     * @param cls The target type to which the object should be converted.
+     */
+    Object toJava(Class cls);
+
+    /**
      * RubyMethod dup.
      * @return
      */
@@ -280,6 +287,7 @@ public interface IRubyObject {
      * @return the object wrapped.
      */
     Object dataGetStruct();
+    Object dataGetStructChecked();
     
     /**
      *

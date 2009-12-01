@@ -117,6 +117,7 @@ import org.jruby.ast.XStrNode;
 import org.jruby.ast.YieldNode;
 import org.jruby.ast.ZArrayNode;
 import org.jruby.ast.ZSuperNode;
+import org.jruby.ast.ZYieldNode;
 import org.jruby.ast.ZeroArgNode;
 import org.jruby.ast.types.ILiteralNode;
 import org.jruby.common.IRubyWarnings;
@@ -145,6 +146,7 @@ public class DefaultRubyParser implements RubyParser {
         this.support = support;
         lexer = new RubyYaccLexer();
         lexer.setParserSupport(support);
+        support.setLexer(lexer);
     }
 
     public void setWarnings(IRubyWarnings warnings) {
@@ -153,7 +155,7 @@ public class DefaultRubyParser implements RubyParser {
         support.setWarnings(warnings);
         lexer.setWarnings(warnings);
     }
-					// line 157 "-"
+					// line 159 "-"
   // %token constants
   public static final int kCLASS = 257;
   public static final int kMODULE = 258;
@@ -1302,7 +1304,7 @@ public class DefaultRubyParser implements RubyParser {
     */
   public void yyerror (String message) {
     //new Exception().printStackTrace();
-    throw new SyntaxException(PID.GRAMMAR_ERROR, getPosition(null), message);
+    throw new SyntaxException(PID.GRAMMAR_ERROR, getPosition(null), lexer.getCurrentLine(), message);
   }
 
   /** (syntax) error message.
@@ -1311,9 +1313,9 @@ public class DefaultRubyParser implements RubyParser {
       @param expected list of acceptable tokens, if available.
     */
   public void yyerror (String message, String[] expected, String found) {
-    String text = ", unexpected " + found + "\n"; 
+    String text = ", unexpected " + found + "\n";
     //new Exception().printStackTrace();
-    throw new SyntaxException(PID.GRAMMAR_ERROR, getPosition(null), text, found);
+    throw new SyntaxException(PID.GRAMMAR_ERROR, getPosition(null), lexer.getCurrentLine(), text, found);
   }
 
   /** computes list of expected tokens on error by tracing the tables.
@@ -1462,679 +1464,679 @@ public class DefaultRubyParser implements RubyParser {
           yydebug.reduce(yyState, yyStates[yyV-1], yyN, yyRule[yyN], yyLen[yyN]);
         yyVal = yyDefault(yyV > yyTop ? null : yyVals[yyV]);
         switch (yyN) {
-case 1: yyVal = case1_line269(yyVal, yyVals, yyTop); // line 269
+case 1: yyVal = case1_line271(yyVal, yyVals, yyTop); // line 271
 break;
-case 2: yyVal = case2_line272(yyVal, yyVals, yyTop); // line 272
+case 2: yyVal = case2_line274(yyVal, yyVals, yyTop); // line 274
 break;
-case 3: yyVal = case3_line284(yyVal, yyVals, yyTop); // line 284
+case 3: yyVal = case3_line286(yyVal, yyVals, yyTop); // line 286
 break;
-case 4: yyVal = case4_line301(yyVal, yyVals, yyTop); // line 301
+case 4: yyVal = case4_line303(yyVal, yyVals, yyTop); // line 303
 break;
-case 6: yyVal = case6_line309(yyVal, yyVals, yyTop); // line 309
+case 6: yyVal = case6_line311(yyVal, yyVals, yyTop); // line 311
 break;
-case 7: yyVal = case7_line312(yyVal, yyVals, yyTop); // line 312
+case 7: yyVal = case7_line314(yyVal, yyVals, yyTop); // line 314
 break;
-case 8: yyVal = case8_line315(yyVal, yyVals, yyTop); // line 315
+case 8: yyVal = case8_line317(yyVal, yyVals, yyTop); // line 317
 break;
-case 9: yyVal = case9_line319(yyVal, yyVals, yyTop); // line 319
+case 9: yyVal = case9_line321(yyVal, yyVals, yyTop); // line 321
 break;
-case 10: yyVal = case10_line321(yyVal, yyVals, yyTop); // line 321
+case 10: yyVal = case10_line323(yyVal, yyVals, yyTop); // line 323
 break;
-case 11: yyVal = case11_line324(yyVal, yyVals, yyTop); // line 324
+case 11: yyVal = case11_line326(yyVal, yyVals, yyTop); // line 326
 break;
-case 12: yyVal = case12_line327(yyVal, yyVals, yyTop); // line 327
+case 12: yyVal = case12_line329(yyVal, yyVals, yyTop); // line 329
 break;
-case 13: yyVal = case13_line330(yyVal, yyVals, yyTop); // line 330
+case 13: yyVal = case13_line332(yyVal, yyVals, yyTop); // line 332
 break;
-case 14: yyVal = case14_line333(yyVal, yyVals, yyTop); // line 333
+case 14: yyVal = case14_line335(yyVal, yyVals, yyTop); // line 335
 break;
-case 15: yyVal = case15_line336(yyVal, yyVals, yyTop); // line 336
+case 15: yyVal = case15_line338(yyVal, yyVals, yyTop); // line 338
 break;
-case 16: yyVal = case16_line339(yyVal, yyVals, yyTop); // line 339
+case 16: yyVal = case16_line341(yyVal, yyVals, yyTop); // line 341
 break;
-case 17: yyVal = case17_line342(yyVal, yyVals, yyTop); // line 342
+case 17: yyVal = case17_line344(yyVal, yyVals, yyTop); // line 344
 break;
-case 18: yyVal = case18_line349(yyVal, yyVals, yyTop); // line 349
+case 18: yyVal = case18_line351(yyVal, yyVals, yyTop); // line 351
 break;
-case 19: yyVal = case19_line356(yyVal, yyVals, yyTop); // line 356
+case 19: yyVal = case19_line358(yyVal, yyVals, yyTop); // line 358
 break;
-case 20: yyVal = case20_line360(yyVal, yyVals, yyTop); // line 360
+case 20: yyVal = case20_line362(yyVal, yyVals, yyTop); // line 362
 break;
-case 21: yyVal = case21_line365(yyVal, yyVals, yyTop); // line 365
+case 21: yyVal = case21_line367(yyVal, yyVals, yyTop); // line 367
 break;
-case 22: yyVal = case22_line370(yyVal, yyVals, yyTop); // line 370
+case 22: yyVal = case22_line372(yyVal, yyVals, yyTop); // line 372
 break;
-case 23: yyVal = case23_line376(yyVal, yyVals, yyTop); // line 376
+case 23: yyVal = case23_line378(yyVal, yyVals, yyTop); // line 378
 break;
-case 24: yyVal = case24_line380(yyVal, yyVals, yyTop); // line 380
+case 24: yyVal = case24_line382(yyVal, yyVals, yyTop); // line 382
 break;
-case 25: yyVal = case25_line389(yyVal, yyVals, yyTop); // line 389
+case 25: yyVal = case25_line391(yyVal, yyVals, yyTop); // line 391
 break;
-case 26: yyVal = case26_line405(yyVal, yyVals, yyTop); // line 405
+case 26: yyVal = case26_line407(yyVal, yyVals, yyTop); // line 407
 break;
-case 27: yyVal = case27_line409(yyVal, yyVals, yyTop); // line 409
+case 27: yyVal = case27_line411(yyVal, yyVals, yyTop); // line 411
 break;
-case 28: yyVal = case28_line412(yyVal, yyVals, yyTop); // line 412
+case 28: yyVal = case28_line414(yyVal, yyVals, yyTop); // line 414
 break;
-case 29: yyVal = case29_line415(yyVal, yyVals, yyTop); // line 415
+case 29: yyVal = case29_line417(yyVal, yyVals, yyTop); // line 417
 break;
-case 30: yyVal = case30_line418(yyVal, yyVals, yyTop); // line 418
+case 30: yyVal = case30_line420(yyVal, yyVals, yyTop); // line 420
 break;
-case 31: yyVal = case31_line421(yyVal, yyVals, yyTop); // line 421
+case 31: yyVal = case31_line423(yyVal, yyVals, yyTop); // line 423
 break;
-case 32: yyVal = case32_line424(yyVal, yyVals, yyTop); // line 424
+case 32: yyVal = case32_line426(yyVal, yyVals, yyTop); // line 426
 break;
-case 33: yyVal = case33_line432(yyVal, yyVals, yyTop); // line 432
+case 33: yyVal = case33_line434(yyVal, yyVals, yyTop); // line 434
 break;
-case 36: yyVal = case36_line441(yyVal, yyVals, yyTop); // line 441
+case 36: yyVal = case36_line443(yyVal, yyVals, yyTop); // line 443
 break;
-case 37: yyVal = case37_line444(yyVal, yyVals, yyTop); // line 444
+case 37: yyVal = case37_line446(yyVal, yyVals, yyTop); // line 446
 break;
-case 38: yyVal = case38_line447(yyVal, yyVals, yyTop); // line 447
+case 38: yyVal = case38_line449(yyVal, yyVals, yyTop); // line 449
 break;
-case 39: yyVal = case39_line450(yyVal, yyVals, yyTop); // line 450
+case 39: yyVal = case39_line452(yyVal, yyVals, yyTop); // line 452
 break;
-case 41: yyVal = case41_line455(yyVal, yyVals, yyTop); // line 455
+case 41: yyVal = case41_line457(yyVal, yyVals, yyTop); // line 457
 break;
-case 44: yyVal = case44_line462(yyVal, yyVals, yyTop); // line 462
+case 44: yyVal = case44_line464(yyVal, yyVals, yyTop); // line 464
 break;
-case 45: yyVal = case45_line465(yyVal, yyVals, yyTop); // line 465
+case 45: yyVal = case45_line467(yyVal, yyVals, yyTop); // line 467
 break;
-case 46: yyVal = case46_line468(yyVal, yyVals, yyTop); // line 468
+case 46: yyVal = case46_line470(yyVal, yyVals, yyTop); // line 470
 break;
-case 48: yyVal = case48_line474(yyVal, yyVals, yyTop); // line 474
+case 48: yyVal = case48_line476(yyVal, yyVals, yyTop); // line 476
 break;
-case 49: yyVal = case49_line477(yyVal, yyVals, yyTop); // line 477
+case 49: yyVal = case49_line479(yyVal, yyVals, yyTop); // line 479
 break;
-case 50: yyVal = case50_line482(yyVal, yyVals, yyTop); // line 482
+case 50: yyVal = case50_line484(yyVal, yyVals, yyTop); // line 484
 break;
-case 51: yyVal = case51_line484(yyVal, yyVals, yyTop); // line 484
+case 51: yyVal = case51_line486(yyVal, yyVals, yyTop); // line 486
 break;
-case 52: yyVal = case52_line490(yyVal, yyVals, yyTop); // line 490
+case 52: yyVal = case52_line492(yyVal, yyVals, yyTop); // line 492
 break;
-case 53: yyVal = case53_line493(yyVal, yyVals, yyTop); // line 493
+case 53: yyVal = case53_line495(yyVal, yyVals, yyTop); // line 495
 break;
-case 54: yyVal = case54_line496(yyVal, yyVals, yyTop); // line 496
+case 54: yyVal = case54_line498(yyVal, yyVals, yyTop); // line 498
 break;
-case 55: yyVal = case55_line499(yyVal, yyVals, yyTop); // line 499
+case 55: yyVal = case55_line501(yyVal, yyVals, yyTop); // line 501
 break;
-case 56: yyVal = case56_line502(yyVal, yyVals, yyTop); // line 502
+case 56: yyVal = case56_line504(yyVal, yyVals, yyTop); // line 504
 break;
-case 57: yyVal = case57_line505(yyVal, yyVals, yyTop); // line 505
+case 57: yyVal = case57_line507(yyVal, yyVals, yyTop); // line 507
 break;
-case 58: yyVal = case58_line508(yyVal, yyVals, yyTop); // line 508
+case 58: yyVal = case58_line510(yyVal, yyVals, yyTop); // line 510
 break;
-case 59: yyVal = case59_line511(yyVal, yyVals, yyTop); // line 511
+case 59: yyVal = case59_line513(yyVal, yyVals, yyTop); // line 513
 break;
-case 61: yyVal = case61_line517(yyVal, yyVals, yyTop); // line 517
+case 61: yyVal = case61_line519(yyVal, yyVals, yyTop); // line 519
 break;
-case 63: yyVal = case63_line523(yyVal, yyVals, yyTop); // line 523
+case 63: yyVal = case63_line525(yyVal, yyVals, yyTop); // line 525
 break;
-case 64: yyVal = case64_line528(yyVal, yyVals, yyTop); // line 528
+case 64: yyVal = case64_line530(yyVal, yyVals, yyTop); // line 530
 break;
-case 65: yyVal = case65_line531(yyVal, yyVals, yyTop); // line 531
+case 65: yyVal = case65_line533(yyVal, yyVals, yyTop); // line 533
 break;
-case 66: yyVal = case66_line535(yyVal, yyVals, yyTop); // line 535
+case 66: yyVal = case66_line537(yyVal, yyVals, yyTop); // line 537
 break;
-case 67: yyVal = case67_line538(yyVal, yyVals, yyTop); // line 538
+case 67: yyVal = case67_line540(yyVal, yyVals, yyTop); // line 540
 break;
-case 68: yyVal = case68_line541(yyVal, yyVals, yyTop); // line 541
+case 68: yyVal = case68_line543(yyVal, yyVals, yyTop); // line 543
 break;
-case 69: yyVal = case69_line544(yyVal, yyVals, yyTop); // line 544
+case 69: yyVal = case69_line546(yyVal, yyVals, yyTop); // line 546
 break;
-case 71: yyVal = case71_line549(yyVal, yyVals, yyTop); // line 549
+case 71: yyVal = case71_line551(yyVal, yyVals, yyTop); // line 551
 break;
-case 72: yyVal = case72_line554(yyVal, yyVals, yyTop); // line 554
+case 72: yyVal = case72_line556(yyVal, yyVals, yyTop); // line 556
 break;
-case 73: yyVal = case73_line557(yyVal, yyVals, yyTop); // line 557
+case 73: yyVal = case73_line559(yyVal, yyVals, yyTop); // line 559
 break;
-case 74: yyVal = case74_line561(yyVal, yyVals, yyTop); // line 561
+case 74: yyVal = case74_line563(yyVal, yyVals, yyTop); // line 563
 break;
-case 75: yyVal = case75_line564(yyVal, yyVals, yyTop); // line 564
+case 75: yyVal = case75_line566(yyVal, yyVals, yyTop); // line 566
 break;
-case 76: yyVal = case76_line567(yyVal, yyVals, yyTop); // line 567
+case 76: yyVal = case76_line569(yyVal, yyVals, yyTop); // line 569
 break;
-case 77: yyVal = case77_line570(yyVal, yyVals, yyTop); // line 570
+case 77: yyVal = case77_line572(yyVal, yyVals, yyTop); // line 572
 break;
-case 78: yyVal = case78_line573(yyVal, yyVals, yyTop); // line 573
+case 78: yyVal = case78_line575(yyVal, yyVals, yyTop); // line 575
 break;
-case 79: yyVal = case79_line576(yyVal, yyVals, yyTop); // line 576
+case 79: yyVal = case79_line578(yyVal, yyVals, yyTop); // line 578
 break;
-case 80: yyVal = case80_line585(yyVal, yyVals, yyTop); // line 585
+case 80: yyVal = case80_line587(yyVal, yyVals, yyTop); // line 587
 break;
-case 81: yyVal = case81_line594(yyVal, yyVals, yyTop); // line 594
+case 81: yyVal = case81_line596(yyVal, yyVals, yyTop); // line 596
 break;
-case 82: yyVal = case82_line599(yyVal, yyVals, yyTop); // line 599
+case 82: yyVal = case82_line601(yyVal, yyVals, yyTop); // line 601
 break;
-case 83: yyVal = case83_line602(yyVal, yyVals, yyTop); // line 602
+case 83: yyVal = case83_line604(yyVal, yyVals, yyTop); // line 604
 break;
-case 84: yyVal = case84_line605(yyVal, yyVals, yyTop); // line 605
+case 84: yyVal = case84_line607(yyVal, yyVals, yyTop); // line 607
 break;
-case 85: yyVal = case85_line608(yyVal, yyVals, yyTop); // line 608
+case 85: yyVal = case85_line610(yyVal, yyVals, yyTop); // line 610
 break;
-case 86: yyVal = case86_line611(yyVal, yyVals, yyTop); // line 611
+case 86: yyVal = case86_line613(yyVal, yyVals, yyTop); // line 613
 break;
-case 87: yyVal = case87_line614(yyVal, yyVals, yyTop); // line 614
+case 87: yyVal = case87_line616(yyVal, yyVals, yyTop); // line 616
 break;
-case 88: yyVal = case88_line623(yyVal, yyVals, yyTop); // line 623
+case 88: yyVal = case88_line625(yyVal, yyVals, yyTop); // line 625
 break;
-case 89: yyVal = case89_line632(yyVal, yyVals, yyTop); // line 632
+case 89: yyVal = case89_line634(yyVal, yyVals, yyTop); // line 634
 break;
-case 90: yyVal = case90_line636(yyVal, yyVals, yyTop); // line 636
+case 90: yyVal = case90_line638(yyVal, yyVals, yyTop); // line 638
 break;
-case 92: yyVal = case92_line641(yyVal, yyVals, yyTop); // line 641
+case 92: yyVal = case92_line643(yyVal, yyVals, yyTop); // line 643
 break;
-case 93: yyVal = case93_line644(yyVal, yyVals, yyTop); // line 644
+case 93: yyVal = case93_line646(yyVal, yyVals, yyTop); // line 646
 break;
-case 94: yyVal = case94_line647(yyVal, yyVals, yyTop); // line 647
+case 94: yyVal = case94_line649(yyVal, yyVals, yyTop); // line 649
 break;
-case 98: yyVal = case98_line653(yyVal, yyVals, yyTop); // line 653
+case 98: yyVal = case98_line655(yyVal, yyVals, yyTop); // line 655
 break;
-case 99: yyVal = case99_line658(yyVal, yyVals, yyTop); // line 658
+case 99: yyVal = case99_line660(yyVal, yyVals, yyTop); // line 660
 break;
-case 102: yyVal = case102_line665(yyVal, yyVals, yyTop); // line 665
+case 102: yyVal = case102_line667(yyVal, yyVals, yyTop); // line 667
 break;
-case 103: yyVal = case103_line668(yyVal, yyVals, yyTop); // line 668
+case 103: yyVal = case103_line670(yyVal, yyVals, yyTop); // line 670
 break;
-case 104: yyVal = case104_line670(yyVal, yyVals, yyTop); // line 670
+case 104: yyVal = case104_line672(yyVal, yyVals, yyTop); // line 672
 break;
-case 172: yyVal = case172_line689(yyVal, yyVals, yyTop); // line 689
+case 172: yyVal = case172_line691(yyVal, yyVals, yyTop); // line 691
 break;
-case 173: yyVal = case173_line694(yyVal, yyVals, yyTop); // line 694
+case 173: yyVal = case173_line696(yyVal, yyVals, yyTop); // line 696
 break;
-case 174: yyVal = case174_line699(yyVal, yyVals, yyTop); // line 699
+case 174: yyVal = case174_line701(yyVal, yyVals, yyTop); // line 701
 break;
-case 175: yyVal = case175_line715(yyVal, yyVals, yyTop); // line 715
+case 175: yyVal = case175_line717(yyVal, yyVals, yyTop); // line 717
 break;
-case 176: yyVal = case176_line718(yyVal, yyVals, yyTop); // line 718
+case 176: yyVal = case176_line720(yyVal, yyVals, yyTop); // line 720
 break;
-case 177: yyVal = case177_line721(yyVal, yyVals, yyTop); // line 721
+case 177: yyVal = case177_line723(yyVal, yyVals, yyTop); // line 723
 break;
-case 178: yyVal = case178_line724(yyVal, yyVals, yyTop); // line 724
+case 178: yyVal = case178_line726(yyVal, yyVals, yyTop); // line 726
 break;
-case 179: yyVal = case179_line727(yyVal, yyVals, yyTop); // line 727
+case 179: yyVal = case179_line729(yyVal, yyVals, yyTop); // line 729
 break;
-case 180: yyVal = case180_line730(yyVal, yyVals, yyTop); // line 730
+case 180: yyVal = case180_line732(yyVal, yyVals, yyTop); // line 732
 break;
-case 181: yyVal = case181_line733(yyVal, yyVals, yyTop); // line 733
+case 181: yyVal = case181_line735(yyVal, yyVals, yyTop); // line 735
 break;
-case 182: yyVal = case182_line736(yyVal, yyVals, yyTop); // line 736
+case 182: yyVal = case182_line738(yyVal, yyVals, yyTop); // line 738
 break;
-case 183: yyVal = case183_line743(yyVal, yyVals, yyTop); // line 743
+case 183: yyVal = case183_line745(yyVal, yyVals, yyTop); // line 745
 break;
-case 184: yyVal = case184_line749(yyVal, yyVals, yyTop); // line 749
+case 184: yyVal = case184_line751(yyVal, yyVals, yyTop); // line 751
 break;
-case 185: yyVal = case185_line752(yyVal, yyVals, yyTop); // line 752
+case 185: yyVal = case185_line754(yyVal, yyVals, yyTop); // line 754
 break;
-case 186: yyVal = case186_line755(yyVal, yyVals, yyTop); // line 755
+case 186: yyVal = case186_line757(yyVal, yyVals, yyTop); // line 757
 break;
-case 187: yyVal = case187_line758(yyVal, yyVals, yyTop); // line 758
+case 187: yyVal = case187_line760(yyVal, yyVals, yyTop); // line 760
 break;
-case 188: yyVal = case188_line761(yyVal, yyVals, yyTop); // line 761
+case 188: yyVal = case188_line763(yyVal, yyVals, yyTop); // line 763
 break;
-case 189: yyVal = case189_line764(yyVal, yyVals, yyTop); // line 764
+case 189: yyVal = case189_line766(yyVal, yyVals, yyTop); // line 766
 break;
-case 190: yyVal = case190_line767(yyVal, yyVals, yyTop); // line 767
+case 190: yyVal = case190_line769(yyVal, yyVals, yyTop); // line 769
 break;
-case 191: yyVal = case191_line770(yyVal, yyVals, yyTop); // line 770
+case 191: yyVal = case191_line772(yyVal, yyVals, yyTop); // line 772
 break;
-case 192: yyVal = case192_line773(yyVal, yyVals, yyTop); // line 773
+case 192: yyVal = case192_line775(yyVal, yyVals, yyTop); // line 775
 break;
-case 193: yyVal = case193_line780(yyVal, yyVals, yyTop); // line 780
+case 193: yyVal = case193_line782(yyVal, yyVals, yyTop); // line 782
 break;
-case 194: yyVal = case194_line783(yyVal, yyVals, yyTop); // line 783
+case 194: yyVal = case194_line785(yyVal, yyVals, yyTop); // line 785
 break;
-case 195: yyVal = case195_line786(yyVal, yyVals, yyTop); // line 786
+case 195: yyVal = case195_line788(yyVal, yyVals, yyTop); // line 788
 break;
-case 196: yyVal = case196_line789(yyVal, yyVals, yyTop); // line 789
+case 196: yyVal = case196_line791(yyVal, yyVals, yyTop); // line 791
 break;
-case 197: yyVal = case197_line792(yyVal, yyVals, yyTop); // line 792
+case 197: yyVal = case197_line794(yyVal, yyVals, yyTop); // line 794
 break;
-case 198: yyVal = case198_line795(yyVal, yyVals, yyTop); // line 795
+case 198: yyVal = case198_line797(yyVal, yyVals, yyTop); // line 797
 break;
-case 199: yyVal = case199_line798(yyVal, yyVals, yyTop); // line 798
+case 199: yyVal = case199_line800(yyVal, yyVals, yyTop); // line 800
 break;
-case 200: yyVal = case200_line801(yyVal, yyVals, yyTop); // line 801
+case 200: yyVal = case200_line803(yyVal, yyVals, yyTop); // line 803
 break;
-case 201: yyVal = case201_line804(yyVal, yyVals, yyTop); // line 804
+case 201: yyVal = case201_line806(yyVal, yyVals, yyTop); // line 806
 break;
-case 202: yyVal = case202_line807(yyVal, yyVals, yyTop); // line 807
+case 202: yyVal = case202_line809(yyVal, yyVals, yyTop); // line 809
 break;
-case 203: yyVal = case203_line810(yyVal, yyVals, yyTop); // line 810
+case 203: yyVal = case203_line812(yyVal, yyVals, yyTop); // line 812
 break;
-case 204: yyVal = case204_line813(yyVal, yyVals, yyTop); // line 813
+case 204: yyVal = case204_line815(yyVal, yyVals, yyTop); // line 815
 break;
-case 205: yyVal = case205_line816(yyVal, yyVals, yyTop); // line 816
+case 205: yyVal = case205_line818(yyVal, yyVals, yyTop); // line 818
 break;
-case 206: yyVal = case206_line819(yyVal, yyVals, yyTop); // line 819
+case 206: yyVal = case206_line821(yyVal, yyVals, yyTop); // line 821
 break;
-case 207: yyVal = case207_line822(yyVal, yyVals, yyTop); // line 822
+case 207: yyVal = case207_line824(yyVal, yyVals, yyTop); // line 824
 break;
-case 208: yyVal = case208_line825(yyVal, yyVals, yyTop); // line 825
+case 208: yyVal = case208_line827(yyVal, yyVals, yyTop); // line 827
 break;
-case 209: yyVal = case209_line828(yyVal, yyVals, yyTop); // line 828
+case 209: yyVal = case209_line830(yyVal, yyVals, yyTop); // line 830
 break;
-case 210: yyVal = case210_line831(yyVal, yyVals, yyTop); // line 831
+case 210: yyVal = case210_line833(yyVal, yyVals, yyTop); // line 833
 break;
-case 211: yyVal = case211_line834(yyVal, yyVals, yyTop); // line 834
+case 211: yyVal = case211_line836(yyVal, yyVals, yyTop); // line 836
 break;
-case 212: yyVal = case212_line837(yyVal, yyVals, yyTop); // line 837
+case 212: yyVal = case212_line839(yyVal, yyVals, yyTop); // line 839
 break;
-case 213: yyVal = case213_line840(yyVal, yyVals, yyTop); // line 840
+case 213: yyVal = case213_line842(yyVal, yyVals, yyTop); // line 842
 break;
-case 214: yyVal = case214_line843(yyVal, yyVals, yyTop); // line 843
+case 214: yyVal = case214_line845(yyVal, yyVals, yyTop); // line 845
 break;
-case 215: yyVal = case215_line846(yyVal, yyVals, yyTop); // line 846
+case 215: yyVal = case215_line848(yyVal, yyVals, yyTop); // line 848
 break;
-case 216: yyVal = case216_line850(yyVal, yyVals, yyTop); // line 850
+case 216: yyVal = case216_line852(yyVal, yyVals, yyTop); // line 852
 break;
-case 218: yyVal = case218_line856(yyVal, yyVals, yyTop); // line 856
+case 218: yyVal = case218_line858(yyVal, yyVals, yyTop); // line 858
 break;
-case 219: yyVal = case219_line859(yyVal, yyVals, yyTop); // line 859
+case 219: yyVal = case219_line861(yyVal, yyVals, yyTop); // line 861
 break;
-case 220: yyVal = case220_line862(yyVal, yyVals, yyTop); // line 862
+case 220: yyVal = case220_line864(yyVal, yyVals, yyTop); // line 864
 break;
-case 221: yyVal = case221_line866(yyVal, yyVals, yyTop); // line 866
+case 221: yyVal = case221_line868(yyVal, yyVals, yyTop); // line 868
 break;
-case 222: yyVal = case222_line869(yyVal, yyVals, yyTop); // line 869
+case 222: yyVal = case222_line871(yyVal, yyVals, yyTop); // line 871
 break;
-case 223: yyVal = case223_line874(yyVal, yyVals, yyTop); // line 874
+case 223: yyVal = case223_line876(yyVal, yyVals, yyTop); // line 876
 break;
-case 224: yyVal = case224_line877(yyVal, yyVals, yyTop); // line 877
+case 224: yyVal = case224_line879(yyVal, yyVals, yyTop); // line 879
 break;
-case 225: yyVal = case225_line881(yyVal, yyVals, yyTop); // line 881
+case 225: yyVal = case225_line883(yyVal, yyVals, yyTop); // line 883
 break;
-case 226: yyVal = case226_line884(yyVal, yyVals, yyTop); // line 884
+case 226: yyVal = case226_line886(yyVal, yyVals, yyTop); // line 886
 break;
-case 229: yyVal = case229_line891(yyVal, yyVals, yyTop); // line 891
+case 229: yyVal = case229_line893(yyVal, yyVals, yyTop); // line 893
 break;
-case 230: yyVal = case230_line894(yyVal, yyVals, yyTop); // line 894
+case 230: yyVal = case230_line896(yyVal, yyVals, yyTop); // line 896
 break;
-case 231: yyVal = case231_line897(yyVal, yyVals, yyTop); // line 897
+case 231: yyVal = case231_line899(yyVal, yyVals, yyTop); // line 899
 break;
-case 232: yyVal = case232_line901(yyVal, yyVals, yyTop); // line 901
+case 232: yyVal = case232_line903(yyVal, yyVals, yyTop); // line 903
 break;
-case 233: yyVal = case233_line905(yyVal, yyVals, yyTop); // line 905
+case 233: yyVal = case233_line907(yyVal, yyVals, yyTop); // line 907
 break;
-case 234: yyVal = case234_line909(yyVal, yyVals, yyTop); // line 909
+case 234: yyVal = case234_line911(yyVal, yyVals, yyTop); // line 911
 break;
-case 235: yyVal = case235_line913(yyVal, yyVals, yyTop); // line 913
+case 235: yyVal = case235_line915(yyVal, yyVals, yyTop); // line 915
 break;
-case 236: yyVal = case236_line918(yyVal, yyVals, yyTop); // line 918
+case 236: yyVal = case236_line920(yyVal, yyVals, yyTop); // line 920
 break;
-case 237: yyVal = case237_line921(yyVal, yyVals, yyTop); // line 921
+case 237: yyVal = case237_line923(yyVal, yyVals, yyTop); // line 923
 break;
-case 238: yyVal = case238_line924(yyVal, yyVals, yyTop); // line 924
+case 238: yyVal = case238_line926(yyVal, yyVals, yyTop); // line 926
 break;
-case 239: yyVal = case239_line927(yyVal, yyVals, yyTop); // line 927
+case 239: yyVal = case239_line929(yyVal, yyVals, yyTop); // line 929
 break;
-case 240: yyVal = case240_line930(yyVal, yyVals, yyTop); // line 930
+case 240: yyVal = case240_line932(yyVal, yyVals, yyTop); // line 932
 break;
-case 241: yyVal = case241_line934(yyVal, yyVals, yyTop); // line 934
+case 241: yyVal = case241_line936(yyVal, yyVals, yyTop); // line 936
 break;
-case 242: yyVal = case242_line938(yyVal, yyVals, yyTop); // line 938
+case 242: yyVal = case242_line940(yyVal, yyVals, yyTop); // line 940
 break;
-case 243: yyVal = case243_line942(yyVal, yyVals, yyTop); // line 942
+case 243: yyVal = case243_line944(yyVal, yyVals, yyTop); // line 944
 break;
-case 244: yyVal = case244_line946(yyVal, yyVals, yyTop); // line 946
+case 244: yyVal = case244_line948(yyVal, yyVals, yyTop); // line 948
 break;
-case 245: yyVal = case245_line950(yyVal, yyVals, yyTop); // line 950
+case 245: yyVal = case245_line952(yyVal, yyVals, yyTop); // line 952
 break;
-case 246: yyVal = case246_line954(yyVal, yyVals, yyTop); // line 954
+case 246: yyVal = case246_line956(yyVal, yyVals, yyTop); // line 956
 break;
-case 247: yyVal = case247_line958(yyVal, yyVals, yyTop); // line 958
+case 247: yyVal = case247_line960(yyVal, yyVals, yyTop); // line 960
 break;
-case 248: yyVal = case248_line962(yyVal, yyVals, yyTop); // line 962
+case 248: yyVal = case248_line964(yyVal, yyVals, yyTop); // line 964
 break;
-case 249: yyVal = case249_line965(yyVal, yyVals, yyTop); // line 965
+case 249: yyVal = case249_line967(yyVal, yyVals, yyTop); // line 967
 break;
-case 250: yyVal = case250_line968(yyVal, yyVals, yyTop); // line 968
+case 250: yyVal = case250_line970(yyVal, yyVals, yyTop); // line 970
 break;
-case 251: yyVal = case251_line970(yyVal, yyVals, yyTop); // line 970
+case 251: yyVal = case251_line972(yyVal, yyVals, yyTop); // line 972
 break;
-case 253: yyVal = case253_line976(yyVal, yyVals, yyTop); // line 976
+case 253: yyVal = case253_line978(yyVal, yyVals, yyTop); // line 978
 break;
-case 254: yyVal = case254_line978(yyVal, yyVals, yyTop); // line 978
+case 254: yyVal = case254_line980(yyVal, yyVals, yyTop); // line 980
 break;
-case 255: yyVal = case255_line982(yyVal, yyVals, yyTop); // line 982
+case 255: yyVal = case255_line984(yyVal, yyVals, yyTop); // line 984
 break;
-case 256: yyVal = case256_line984(yyVal, yyVals, yyTop); // line 984
+case 256: yyVal = case256_line986(yyVal, yyVals, yyTop); // line 986
 break;
-case 257: yyVal = case257_line989(yyVal, yyVals, yyTop); // line 989
+case 257: yyVal = case257_line991(yyVal, yyVals, yyTop); // line 991
 break;
-case 258: yyVal = case258_line994(yyVal, yyVals, yyTop); // line 994
+case 258: yyVal = case258_line996(yyVal, yyVals, yyTop); // line 996
 break;
-case 260: yyVal = case260_line999(yyVal, yyVals, yyTop); // line 999
+case 260: yyVal = case260_line1001(yyVal, yyVals, yyTop); // line 1001
 break;
-case 261: yyVal = case261_line1002(yyVal, yyVals, yyTop); // line 1002
+case 261: yyVal = case261_line1004(yyVal, yyVals, yyTop); // line 1004
 break;
-case 262: yyVal = case262_line1006(yyVal, yyVals, yyTop); // line 1006
+case 262: yyVal = case262_line1008(yyVal, yyVals, yyTop); // line 1008
 break;
-case 263: yyVal = case263_line1009(yyVal, yyVals, yyTop); // line 1009
+case 263: yyVal = case263_line1011(yyVal, yyVals, yyTop); // line 1011
 break;
-case 264: yyVal = case264_line1012(yyVal, yyVals, yyTop); // line 1012
+case 264: yyVal = case264_line1014(yyVal, yyVals, yyTop); // line 1014
 break;
-case 273: yyVal = case273_line1024(yyVal, yyVals, yyTop); // line 1024
+case 273: yyVal = case273_line1026(yyVal, yyVals, yyTop); // line 1026
 break;
-case 274: yyVal = case274_line1027(yyVal, yyVals, yyTop); // line 1027
+case 274: yyVal = case274_line1029(yyVal, yyVals, yyTop); // line 1029
 break;
-case 275: yyVal = case275_line1030(yyVal, yyVals, yyTop); // line 1030
+case 275: yyVal = case275_line1032(yyVal, yyVals, yyTop); // line 1032
 break;
-case 276: yyVal = case276_line1032(yyVal, yyVals, yyTop); // line 1032
+case 276: yyVal = case276_line1034(yyVal, yyVals, yyTop); // line 1034
 break;
-case 277: yyVal = case277_line1036(yyVal, yyVals, yyTop); // line 1036
+case 277: yyVal = case277_line1038(yyVal, yyVals, yyTop); // line 1038
 break;
-case 278: yyVal = case278_line1043(yyVal, yyVals, yyTop); // line 1043
+case 278: yyVal = case278_line1047(yyVal, yyVals, yyTop); // line 1047
 break;
-case 279: yyVal = case279_line1046(yyVal, yyVals, yyTop); // line 1046
+case 279: yyVal = case279_line1050(yyVal, yyVals, yyTop); // line 1050
 break;
-case 280: yyVal = case280_line1049(yyVal, yyVals, yyTop); // line 1049
+case 280: yyVal = case280_line1053(yyVal, yyVals, yyTop); // line 1053
 break;
-case 281: yyVal = case281_line1056(yyVal, yyVals, yyTop); // line 1056
+case 281: yyVal = case281_line1060(yyVal, yyVals, yyTop); // line 1060
 break;
-case 282: yyVal = case282_line1065(yyVal, yyVals, yyTop); // line 1065
+case 282: yyVal = case282_line1069(yyVal, yyVals, yyTop); // line 1069
 break;
-case 283: yyVal = case283_line1068(yyVal, yyVals, yyTop); // line 1068
+case 283: yyVal = case283_line1072(yyVal, yyVals, yyTop); // line 1072
 break;
-case 284: yyVal = case284_line1071(yyVal, yyVals, yyTop); // line 1071
+case 284: yyVal = case284_line1075(yyVal, yyVals, yyTop); // line 1075
 break;
-case 285: yyVal = case285_line1074(yyVal, yyVals, yyTop); // line 1074
+case 285: yyVal = case285_line1078(yyVal, yyVals, yyTop); // line 1078
 break;
-case 286: yyVal = case286_line1077(yyVal, yyVals, yyTop); // line 1077
+case 286: yyVal = case286_line1081(yyVal, yyVals, yyTop); // line 1081
 break;
-case 287: yyVal = case287_line1080(yyVal, yyVals, yyTop); // line 1080
+case 287: yyVal = case287_line1084(yyVal, yyVals, yyTop); // line 1084
 break;
-case 288: yyVal = case288_line1083(yyVal, yyVals, yyTop); // line 1083
+case 288: yyVal = case288_line1087(yyVal, yyVals, yyTop); // line 1087
 break;
-case 290: yyVal = case290_line1087(yyVal, yyVals, yyTop); // line 1087
+case 290: yyVal = case290_line1091(yyVal, yyVals, yyTop); // line 1091
 break;
-case 291: yyVal = case291_line1095(yyVal, yyVals, yyTop); // line 1095
+case 291: yyVal = case291_line1099(yyVal, yyVals, yyTop); // line 1099
 break;
-case 292: yyVal = case292_line1098(yyVal, yyVals, yyTop); // line 1098
+case 292: yyVal = case292_line1102(yyVal, yyVals, yyTop); // line 1102
 break;
-case 293: yyVal = case293_line1101(yyVal, yyVals, yyTop); // line 1101
+case 293: yyVal = case293_line1105(yyVal, yyVals, yyTop); // line 1105
 break;
-case 294: yyVal = case294_line1103(yyVal, yyVals, yyTop); // line 1103
+case 294: yyVal = case294_line1107(yyVal, yyVals, yyTop); // line 1107
 break;
-case 295: yyVal = case295_line1105(yyVal, yyVals, yyTop); // line 1105
+case 295: yyVal = case295_line1109(yyVal, yyVals, yyTop); // line 1109
 break;
-case 296: yyVal = case296_line1109(yyVal, yyVals, yyTop); // line 1109
+case 296: yyVal = case296_line1113(yyVal, yyVals, yyTop); // line 1113
 break;
-case 297: yyVal = case297_line1111(yyVal, yyVals, yyTop); // line 1111
+case 297: yyVal = case297_line1115(yyVal, yyVals, yyTop); // line 1115
 break;
-case 298: yyVal = case298_line1113(yyVal, yyVals, yyTop); // line 1113
+case 298: yyVal = case298_line1117(yyVal, yyVals, yyTop); // line 1117
 break;
-case 299: yyVal = case299_line1117(yyVal, yyVals, yyTop); // line 1117
+case 299: yyVal = case299_line1121(yyVal, yyVals, yyTop); // line 1121
 break;
-case 300: yyVal = case300_line1120(yyVal, yyVals, yyTop); // line 1120
+case 300: yyVal = case300_line1124(yyVal, yyVals, yyTop); // line 1124
 break;
-case 301: yyVal = case301_line1128(yyVal, yyVals, yyTop); // line 1128
+case 301: yyVal = case301_line1132(yyVal, yyVals, yyTop); // line 1132
 break;
-case 302: yyVal = case302_line1131(yyVal, yyVals, yyTop); // line 1131
+case 302: yyVal = case302_line1135(yyVal, yyVals, yyTop); // line 1135
 break;
-case 303: yyVal = case303_line1133(yyVal, yyVals, yyTop); // line 1133
+case 303: yyVal = case303_line1137(yyVal, yyVals, yyTop); // line 1137
 break;
-case 304: yyVal = case304_line1135(yyVal, yyVals, yyTop); // line 1135
+case 304: yyVal = case304_line1139(yyVal, yyVals, yyTop); // line 1139
 break;
-case 305: yyVal = case305_line1138(yyVal, yyVals, yyTop); // line 1138
+case 305: yyVal = case305_line1142(yyVal, yyVals, yyTop); // line 1142
 break;
-case 306: yyVal = case306_line1143(yyVal, yyVals, yyTop); // line 1143
+case 306: yyVal = case306_line1147(yyVal, yyVals, yyTop); // line 1147
 break;
-case 307: yyVal = case307_line1149(yyVal, yyVals, yyTop); // line 1149
+case 307: yyVal = case307_line1153(yyVal, yyVals, yyTop); // line 1153
 break;
-case 308: yyVal = case308_line1152(yyVal, yyVals, yyTop); // line 1152
+case 308: yyVal = case308_line1156(yyVal, yyVals, yyTop); // line 1156
 break;
-case 309: yyVal = case309_line1156(yyVal, yyVals, yyTop); // line 1156
+case 309: yyVal = case309_line1160(yyVal, yyVals, yyTop); // line 1160
 break;
-case 310: yyVal = case310_line1162(yyVal, yyVals, yyTop); // line 1162
+case 310: yyVal = case310_line1166(yyVal, yyVals, yyTop); // line 1166
 break;
-case 311: yyVal = case311_line1167(yyVal, yyVals, yyTop); // line 1167
+case 311: yyVal = case311_line1171(yyVal, yyVals, yyTop); // line 1171
 break;
-case 312: yyVal = case312_line1173(yyVal, yyVals, yyTop); // line 1173
+case 312: yyVal = case312_line1177(yyVal, yyVals, yyTop); // line 1177
 break;
-case 313: yyVal = case313_line1176(yyVal, yyVals, yyTop); // line 1176
+case 313: yyVal = case313_line1180(yyVal, yyVals, yyTop); // line 1180
 break;
-case 314: yyVal = case314_line1185(yyVal, yyVals, yyTop); // line 1185
+case 314: yyVal = case314_line1189(yyVal, yyVals, yyTop); // line 1189
 break;
-case 315: yyVal = case315_line1187(yyVal, yyVals, yyTop); // line 1187
+case 315: yyVal = case315_line1191(yyVal, yyVals, yyTop); // line 1191
 break;
-case 316: yyVal = case316_line1191(yyVal, yyVals, yyTop); // line 1191
+case 316: yyVal = case316_line1195(yyVal, yyVals, yyTop); // line 1195
 break;
-case 317: yyVal = case317_line1199(yyVal, yyVals, yyTop); // line 1199
+case 317: yyVal = case317_line1203(yyVal, yyVals, yyTop); // line 1203
 break;
-case 318: yyVal = case318_line1202(yyVal, yyVals, yyTop); // line 1202
+case 318: yyVal = case318_line1206(yyVal, yyVals, yyTop); // line 1206
 break;
-case 319: yyVal = case319_line1205(yyVal, yyVals, yyTop); // line 1205
+case 319: yyVal = case319_line1209(yyVal, yyVals, yyTop); // line 1209
 break;
-case 320: yyVal = case320_line1208(yyVal, yyVals, yyTop); // line 1208
+case 320: yyVal = case320_line1212(yyVal, yyVals, yyTop); // line 1212
 break;
-case 321: yyVal = case321_line1212(yyVal, yyVals, yyTop); // line 1212
+case 321: yyVal = case321_line1216(yyVal, yyVals, yyTop); // line 1216
 break;
-case 330: yyVal = case330_line1227(yyVal, yyVals, yyTop); // line 1227
+case 330: yyVal = case330_line1231(yyVal, yyVals, yyTop); // line 1231
 break;
-case 332: yyVal = case332_line1232(yyVal, yyVals, yyTop); // line 1232
+case 332: yyVal = case332_line1236(yyVal, yyVals, yyTop); // line 1236
 break;
-case 334: yyVal = case334_line1237(yyVal, yyVals, yyTop); // line 1237
+case 334: yyVal = case334_line1241(yyVal, yyVals, yyTop); // line 1241
 break;
-case 336: yyVal = case336_line1241(yyVal, yyVals, yyTop); // line 1241
+case 336: yyVal = case336_line1245(yyVal, yyVals, yyTop); // line 1245
 break;
-case 337: yyVal = case337_line1244(yyVal, yyVals, yyTop); // line 1244
+case 337: yyVal = case337_line1249(yyVal, yyVals, yyTop); // line 1249
 break;
-case 338: yyVal = case338_line1247(yyVal, yyVals, yyTop); // line 1247
+case 338: yyVal = case338_line1253(yyVal, yyVals, yyTop); // line 1253
 break;
-case 339: yyVal = case339_line1256(yyVal, yyVals, yyTop); // line 1256
+case 339: yyVal = case339_line1263(yyVal, yyVals, yyTop); // line 1263
 break;
-case 340: yyVal = case340_line1258(yyVal, yyVals, yyTop); // line 1258
+case 340: yyVal = case340_line1265(yyVal, yyVals, yyTop); // line 1265
 break;
-case 341: yyVal = case341_line1264(yyVal, yyVals, yyTop); // line 1264
+case 341: yyVal = case341_line1271(yyVal, yyVals, yyTop); // line 1271
 break;
-case 342: yyVal = case342_line1275(yyVal, yyVals, yyTop); // line 1275
+case 342: yyVal = case342_line1282(yyVal, yyVals, yyTop); // line 1282
 break;
-case 343: yyVal = case343_line1278(yyVal, yyVals, yyTop); // line 1278
+case 343: yyVal = case343_line1285(yyVal, yyVals, yyTop); // line 1285
 break;
-case 344: yyVal = case344_line1282(yyVal, yyVals, yyTop); // line 1282
+case 344: yyVal = case344_line1289(yyVal, yyVals, yyTop); // line 1289
 break;
-case 345: yyVal = case345_line1285(yyVal, yyVals, yyTop); // line 1285
+case 345: yyVal = case345_line1292(yyVal, yyVals, yyTop); // line 1292
 break;
-case 346: yyVal = case346_line1288(yyVal, yyVals, yyTop); // line 1288
+case 346: yyVal = case346_line1295(yyVal, yyVals, yyTop); // line 1295
 break;
-case 347: yyVal = case347_line1291(yyVal, yyVals, yyTop); // line 1291
+case 347: yyVal = case347_line1298(yyVal, yyVals, yyTop); // line 1298
 break;
-case 348: yyVal = case348_line1294(yyVal, yyVals, yyTop); // line 1294
+case 348: yyVal = case348_line1301(yyVal, yyVals, yyTop); // line 1301
 break;
-case 349: yyVal = case349_line1297(yyVal, yyVals, yyTop); // line 1297
+case 349: yyVal = case349_line1304(yyVal, yyVals, yyTop); // line 1304
 break;
-case 350: yyVal = case350_line1302(yyVal, yyVals, yyTop); // line 1302
+case 350: yyVal = case350_line1309(yyVal, yyVals, yyTop); // line 1309
 break;
-case 351: yyVal = case351_line1304(yyVal, yyVals, yyTop); // line 1304
+case 351: yyVal = case351_line1311(yyVal, yyVals, yyTop); // line 1311
 break;
-case 352: yyVal = case352_line1308(yyVal, yyVals, yyTop); // line 1308
+case 352: yyVal = case352_line1315(yyVal, yyVals, yyTop); // line 1315
 break;
-case 353: yyVal = case353_line1310(yyVal, yyVals, yyTop); // line 1310
+case 353: yyVal = case353_line1317(yyVal, yyVals, yyTop); // line 1317
 break;
-case 354: yyVal = case354_line1315(yyVal, yyVals, yyTop); // line 1315
+case 354: yyVal = case354_line1322(yyVal, yyVals, yyTop); // line 1322
 break;
-case 356: yyVal = case356_line1320(yyVal, yyVals, yyTop); // line 1320
+case 356: yyVal = case356_line1327(yyVal, yyVals, yyTop); // line 1327
 break;
-case 357: yyVal = case357_line1323(yyVal, yyVals, yyTop); // line 1323
+case 357: yyVal = case357_line1330(yyVal, yyVals, yyTop); // line 1330
 break;
-case 360: yyVal = case360_line1330(yyVal, yyVals, yyTop); // line 1330
+case 360: yyVal = case360_line1337(yyVal, yyVals, yyTop); // line 1337
 break;
-case 361: yyVal = case361_line1343(yyVal, yyVals, yyTop); // line 1343
+case 361: yyVal = case361_line1350(yyVal, yyVals, yyTop); // line 1350
 break;
-case 362: yyVal = case362_line1347(yyVal, yyVals, yyTop); // line 1347
+case 362: yyVal = case362_line1354(yyVal, yyVals, yyTop); // line 1354
 break;
-case 365: yyVal = case365_line1353(yyVal, yyVals, yyTop); // line 1353
+case 365: yyVal = case365_line1360(yyVal, yyVals, yyTop); // line 1360
 break;
-case 367: yyVal = case367_line1358(yyVal, yyVals, yyTop); // line 1358
+case 367: yyVal = case367_line1365(yyVal, yyVals, yyTop); // line 1365
 break;
-case 370: yyVal = case370_line1369(yyVal, yyVals, yyTop); // line 1369
+case 370: yyVal = case370_line1376(yyVal, yyVals, yyTop); // line 1376
 break;
-case 372: yyVal = case372_line1376(yyVal, yyVals, yyTop); // line 1376
+case 372: yyVal = case372_line1383(yyVal, yyVals, yyTop); // line 1383
 break;
-case 374: yyVal = case374_line1382(yyVal, yyVals, yyTop); // line 1382
+case 374: yyVal = case374_line1389(yyVal, yyVals, yyTop); // line 1389
 break;
-case 375: yyVal = case375_line1387(yyVal, yyVals, yyTop); // line 1387
+case 375: yyVal = case375_line1394(yyVal, yyVals, yyTop); // line 1394
 break;
-case 376: yyVal = case376_line1393(yyVal, yyVals, yyTop); // line 1393
+case 376: yyVal = case376_line1400(yyVal, yyVals, yyTop); // line 1400
 break;
-case 377: yyVal = case377_line1410(yyVal, yyVals, yyTop); // line 1410
+case 377: yyVal = case377_line1417(yyVal, yyVals, yyTop); // line 1417
 break;
-case 378: yyVal = case378_line1426(yyVal, yyVals, yyTop); // line 1426
+case 378: yyVal = case378_line1433(yyVal, yyVals, yyTop); // line 1433
 break;
-case 379: yyVal = case379_line1429(yyVal, yyVals, yyTop); // line 1429
+case 379: yyVal = case379_line1436(yyVal, yyVals, yyTop); // line 1436
 break;
-case 380: yyVal = case380_line1435(yyVal, yyVals, yyTop); // line 1435
+case 380: yyVal = case380_line1442(yyVal, yyVals, yyTop); // line 1442
 break;
-case 381: yyVal = case381_line1438(yyVal, yyVals, yyTop); // line 1438
+case 381: yyVal = case381_line1445(yyVal, yyVals, yyTop); // line 1445
 break;
-case 383: yyVal = case383_line1443(yyVal, yyVals, yyTop); // line 1443
+case 383: yyVal = case383_line1450(yyVal, yyVals, yyTop); // line 1450
 break;
-case 384: yyVal = case384_line1448(yyVal, yyVals, yyTop); // line 1448
+case 384: yyVal = case384_line1455(yyVal, yyVals, yyTop); // line 1455
 break;
-case 385: yyVal = case385_line1451(yyVal, yyVals, yyTop); // line 1451
+case 385: yyVal = case385_line1458(yyVal, yyVals, yyTop); // line 1458
 break;
-case 386: yyVal = case386_line1457(yyVal, yyVals, yyTop); // line 1457
+case 386: yyVal = case386_line1464(yyVal, yyVals, yyTop); // line 1464
 break;
-case 387: yyVal = case387_line1460(yyVal, yyVals, yyTop); // line 1460
+case 387: yyVal = case387_line1467(yyVal, yyVals, yyTop); // line 1467
 break;
-case 388: yyVal = case388_line1465(yyVal, yyVals, yyTop); // line 1465
+case 388: yyVal = case388_line1472(yyVal, yyVals, yyTop); // line 1472
 break;
-case 389: yyVal = case389_line1468(yyVal, yyVals, yyTop); // line 1468
+case 389: yyVal = case389_line1475(yyVal, yyVals, yyTop); // line 1475
 break;
-case 390: yyVal = case390_line1472(yyVal, yyVals, yyTop); // line 1472
+case 390: yyVal = case390_line1479(yyVal, yyVals, yyTop); // line 1479
 break;
-case 391: yyVal = case391_line1475(yyVal, yyVals, yyTop); // line 1475
+case 391: yyVal = case391_line1482(yyVal, yyVals, yyTop); // line 1482
 break;
-case 392: yyVal = case392_line1480(yyVal, yyVals, yyTop); // line 1480
+case 392: yyVal = case392_line1487(yyVal, yyVals, yyTop); // line 1487
 break;
-case 393: yyVal = case393_line1483(yyVal, yyVals, yyTop); // line 1483
+case 393: yyVal = case393_line1490(yyVal, yyVals, yyTop); // line 1490
 break;
-case 394: yyVal = case394_line1487(yyVal, yyVals, yyTop); // line 1487
+case 394: yyVal = case394_line1494(yyVal, yyVals, yyTop); // line 1494
 break;
-case 395: yyVal = case395_line1491(yyVal, yyVals, yyTop); // line 1491
+case 395: yyVal = case395_line1498(yyVal, yyVals, yyTop); // line 1498
 break;
-case 396: yyVal = case396_line1497(yyVal, yyVals, yyTop); // line 1497
+case 396: yyVal = case396_line1504(yyVal, yyVals, yyTop); // line 1504
 break;
-case 397: yyVal = case397_line1505(yyVal, yyVals, yyTop); // line 1505
+case 397: yyVal = case397_line1512(yyVal, yyVals, yyTop); // line 1512
 break;
-case 398: yyVal = case398_line1508(yyVal, yyVals, yyTop); // line 1508
+case 398: yyVal = case398_line1515(yyVal, yyVals, yyTop); // line 1515
 break;
-case 399: yyVal = case399_line1511(yyVal, yyVals, yyTop); // line 1511
+case 399: yyVal = case399_line1518(yyVal, yyVals, yyTop); // line 1518
 break;
-case 401: yyVal = case401_line1518(yyVal, yyVals, yyTop); // line 1518
+case 401: yyVal = case401_line1525(yyVal, yyVals, yyTop); // line 1525
 break;
-case 406: yyVal = case406_line1528(yyVal, yyVals, yyTop); // line 1528
+case 406: yyVal = case406_line1535(yyVal, yyVals, yyTop); // line 1535
 break;
-case 408: yyVal = case408_line1545(yyVal, yyVals, yyTop); // line 1545
+case 408: yyVal = case408_line1552(yyVal, yyVals, yyTop); // line 1552
 break;
-case 409: yyVal = case409_line1548(yyVal, yyVals, yyTop); // line 1548
+case 409: yyVal = case409_line1555(yyVal, yyVals, yyTop); // line 1555
 break;
-case 410: yyVal = case410_line1551(yyVal, yyVals, yyTop); // line 1551
+case 410: yyVal = case410_line1558(yyVal, yyVals, yyTop); // line 1558
 break;
-case 416: yyVal = case416_line1557(yyVal, yyVals, yyTop); // line 1557
+case 416: yyVal = case416_line1564(yyVal, yyVals, yyTop); // line 1564
 break;
-case 417: yyVal = case417_line1560(yyVal, yyVals, yyTop); // line 1560
+case 417: yyVal = case417_line1567(yyVal, yyVals, yyTop); // line 1567
 break;
-case 418: yyVal = case418_line1563(yyVal, yyVals, yyTop); // line 1563
+case 418: yyVal = case418_line1570(yyVal, yyVals, yyTop); // line 1570
 break;
-case 419: yyVal = case419_line1566(yyVal, yyVals, yyTop); // line 1566
+case 419: yyVal = case419_line1573(yyVal, yyVals, yyTop); // line 1573
 break;
-case 420: yyVal = case420_line1569(yyVal, yyVals, yyTop); // line 1569
+case 420: yyVal = case420_line1576(yyVal, yyVals, yyTop); // line 1576
 break;
-case 421: yyVal = case421_line1572(yyVal, yyVals, yyTop); // line 1572
+case 421: yyVal = case421_line1579(yyVal, yyVals, yyTop); // line 1579
 break;
-case 422: yyVal = case422_line1577(yyVal, yyVals, yyTop); // line 1577
+case 422: yyVal = case422_line1584(yyVal, yyVals, yyTop); // line 1584
 break;
-case 423: yyVal = case423_line1582(yyVal, yyVals, yyTop); // line 1582
+case 423: yyVal = case423_line1589(yyVal, yyVals, yyTop); // line 1589
 break;
-case 426: yyVal = case426_line1590(yyVal, yyVals, yyTop); // line 1590
+case 426: yyVal = case426_line1597(yyVal, yyVals, yyTop); // line 1597
 break;
-case 427: yyVal = case427_line1593(yyVal, yyVals, yyTop); // line 1593
+case 427: yyVal = case427_line1600(yyVal, yyVals, yyTop); // line 1600
 break;
-case 428: yyVal = case428_line1595(yyVal, yyVals, yyTop); // line 1595
+case 428: yyVal = case428_line1602(yyVal, yyVals, yyTop); // line 1602
 break;
-case 429: yyVal = case429_line1598(yyVal, yyVals, yyTop); // line 1598
+case 429: yyVal = case429_line1605(yyVal, yyVals, yyTop); // line 1605
 break;
-case 430: yyVal = case430_line1604(yyVal, yyVals, yyTop); // line 1604
+case 430: yyVal = case430_line1611(yyVal, yyVals, yyTop); // line 1611
 break;
-case 431: yyVal = case431_line1609(yyVal, yyVals, yyTop); // line 1609
+case 431: yyVal = case431_line1617(yyVal, yyVals, yyTop); // line 1617
 break;
-case 432: yyVal = case432_line1614(yyVal, yyVals, yyTop); // line 1614
+case 432: yyVal = case432_line1622(yyVal, yyVals, yyTop); // line 1622
 break;
-case 433: yyVal = case433_line1617(yyVal, yyVals, yyTop); // line 1617
+case 433: yyVal = case433_line1625(yyVal, yyVals, yyTop); // line 1625
 break;
-case 434: yyVal = case434_line1620(yyVal, yyVals, yyTop); // line 1620
+case 434: yyVal = case434_line1628(yyVal, yyVals, yyTop); // line 1628
 break;
-case 435: yyVal = case435_line1623(yyVal, yyVals, yyTop); // line 1623
+case 435: yyVal = case435_line1631(yyVal, yyVals, yyTop); // line 1631
 break;
-case 436: yyVal = case436_line1626(yyVal, yyVals, yyTop); // line 1626
+case 436: yyVal = case436_line1634(yyVal, yyVals, yyTop); // line 1634
 break;
-case 437: yyVal = case437_line1629(yyVal, yyVals, yyTop); // line 1629
+case 437: yyVal = case437_line1637(yyVal, yyVals, yyTop); // line 1637
 break;
-case 438: yyVal = case438_line1632(yyVal, yyVals, yyTop); // line 1632
+case 438: yyVal = case438_line1640(yyVal, yyVals, yyTop); // line 1640
 break;
-case 439: yyVal = case439_line1635(yyVal, yyVals, yyTop); // line 1635
+case 439: yyVal = case439_line1643(yyVal, yyVals, yyTop); // line 1643
 break;
-case 440: yyVal = case440_line1638(yyVal, yyVals, yyTop); // line 1638
+case 440: yyVal = case440_line1646(yyVal, yyVals, yyTop); // line 1646
 break;
-case 441: yyVal = case441_line1643(yyVal, yyVals, yyTop); // line 1643
+case 441: yyVal = case441_line1651(yyVal, yyVals, yyTop); // line 1651
 break;
-case 442: yyVal = case442_line1646(yyVal, yyVals, yyTop); // line 1646
+case 442: yyVal = case442_line1654(yyVal, yyVals, yyTop); // line 1654
 break;
-case 443: yyVal = case443_line1649(yyVal, yyVals, yyTop); // line 1649
+case 443: yyVal = case443_line1657(yyVal, yyVals, yyTop); // line 1657
 break;
-case 444: yyVal = case444_line1652(yyVal, yyVals, yyTop); // line 1652
+case 444: yyVal = case444_line1660(yyVal, yyVals, yyTop); // line 1660
 break;
-case 445: yyVal = case445_line1655(yyVal, yyVals, yyTop); // line 1655
+case 445: yyVal = case445_line1663(yyVal, yyVals, yyTop); // line 1663
 break;
-case 446: yyVal = case446_line1666(yyVal, yyVals, yyTop); // line 1666
+case 446: yyVal = case446_line1674(yyVal, yyVals, yyTop); // line 1674
 break;
-case 447: yyVal = case447_line1671(yyVal, yyVals, yyTop); // line 1671
+case 447: yyVal = case447_line1679(yyVal, yyVals, yyTop); // line 1679
 break;
-case 448: yyVal = case448_line1675(yyVal, yyVals, yyTop); // line 1675
+case 448: yyVal = case448_line1683(yyVal, yyVals, yyTop); // line 1683
 break;
-case 449: yyVal = case449_line1681(yyVal, yyVals, yyTop); // line 1681
+case 449: yyVal = case449_line1689(yyVal, yyVals, yyTop); // line 1689
 break;
-case 450: yyVal = case450_line1688(yyVal, yyVals, yyTop); // line 1688
+case 450: yyVal = case450_line1696(yyVal, yyVals, yyTop); // line 1696
 break;
-case 451: yyVal = case451_line1699(yyVal, yyVals, yyTop); // line 1699
+case 451: yyVal = case451_line1707(yyVal, yyVals, yyTop); // line 1707
 break;
-case 452: yyVal = case452_line1702(yyVal, yyVals, yyTop); // line 1702
+case 452: yyVal = case452_line1710(yyVal, yyVals, yyTop); // line 1710
 break;
-case 455: yyVal = case455_line1710(yyVal, yyVals, yyTop); // line 1710
+case 455: yyVal = case455_line1718(yyVal, yyVals, yyTop); // line 1718
 break;
-case 456: yyVal = case456_line1719(yyVal, yyVals, yyTop); // line 1719
+case 456: yyVal = case456_line1727(yyVal, yyVals, yyTop); // line 1727
 break;
-case 459: yyVal = case459_line1727(yyVal, yyVals, yyTop); // line 1727
+case 459: yyVal = case459_line1735(yyVal, yyVals, yyTop); // line 1735
 break;
-case 460: yyVal = case460_line1736(yyVal, yyVals, yyTop); // line 1736
+case 460: yyVal = case460_line1744(yyVal, yyVals, yyTop); // line 1744
 break;
-case 461: yyVal = case461_line1739(yyVal, yyVals, yyTop); // line 1739
+case 461: yyVal = case461_line1747(yyVal, yyVals, yyTop); // line 1747
 break;
-case 462: yyVal = case462_line1743(yyVal, yyVals, yyTop); // line 1743
+case 462: yyVal = case462_line1751(yyVal, yyVals, yyTop); // line 1751
 break;
-case 463: yyVal = case463_line1749(yyVal, yyVals, yyTop); // line 1749
+case 463: yyVal = case463_line1757(yyVal, yyVals, yyTop); // line 1757
 break;
-case 464: yyVal = case464_line1751(yyVal, yyVals, yyTop); // line 1751
+case 464: yyVal = case464_line1759(yyVal, yyVals, yyTop); // line 1759
 break;
-case 465: yyVal = case465_line1763(yyVal, yyVals, yyTop); // line 1763
+case 465: yyVal = case465_line1771(yyVal, yyVals, yyTop); // line 1771
 break;
-case 466: yyVal = case466_line1766(yyVal, yyVals, yyTop); // line 1766
+case 466: yyVal = case466_line1774(yyVal, yyVals, yyTop); // line 1774
 break;
-case 467: yyVal = case467_line1769(yyVal, yyVals, yyTop); // line 1769
+case 467: yyVal = case467_line1777(yyVal, yyVals, yyTop); // line 1777
 break;
-case 469: yyVal = case469_line1778(yyVal, yyVals, yyTop); // line 1778
+case 469: yyVal = case469_line1786(yyVal, yyVals, yyTop); // line 1786
 break;
-case 470: yyVal = case470_line1783(yyVal, yyVals, yyTop); // line 1783
+case 470: yyVal = case470_line1791(yyVal, yyVals, yyTop); // line 1791
 break;
-case 490: yyVal = case490_line1802(yyVal, yyVals, yyTop); // line 1802
+case 490: yyVal = case490_line1810(yyVal, yyVals, yyTop); // line 1810
 break;
-case 493: yyVal = case493_line1808(yyVal, yyVals, yyTop); // line 1808
+case 493: yyVal = case493_line1816(yyVal, yyVals, yyTop); // line 1816
 break;
-case 494: yyVal = case494_line1812(yyVal, yyVals, yyTop); // line 1812
+case 494: yyVal = case494_line1820(yyVal, yyVals, yyTop); // line 1820
 break;
-case 495: yyVal = case495_line1816(yyVal, yyVals, yyTop); // line 1816
+case 495: yyVal = case495_line1824(yyVal, yyVals, yyTop); // line 1824
 break;
 // ACTIONS_END
         }
@@ -2166,73 +2168,104 @@ break;
     }
   }
 
-public Object case467_line1769(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (((ListNode)yyVals[-1+yyTop]).size() % 2 != 0) {
-                      yyerror("odd number list for Hash.");
-                  }
+public Object case440_line1646(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.new_args(support.createEmptyArgsNodePosition(getPosition()), null, null, null, null, null);
+    return yyVal;
+}
+public Object case385_line1458(Object yyVal, Object[] yyVals, int yyTop) {
+		   yyVal = ((ListNode)yyVals[-1+yyTop]);
+                   ((ISourcePositionHolder)yyVal).setPosition(getPosition(((Token)yyVals[-2+yyTop])));
+    return yyVal;
+}
+public Object case375_line1394(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((Node)yyVals[-1+yyTop]);
+                  ((ISourcePositionHolder)yyVal).setPosition(getPosition(((Token)yyVals[-2+yyTop])));
+    return yyVal;
+}
+public Object case102_line667(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new UndefNode(getPosition(((Token)yyVals[0+yyTop])), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case242_line940(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newArrayNode(getPosition(((ListNode)yyVals[-1+yyTop])), new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
+                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case287_line1084(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new DefinedNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-1+yyTop]));
+    return yyVal;
+}
+public Object case436_line1634(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.new_args(getPosition(((ListNode)yyVals[-3+yyTop])), null, ((ListNode)yyVals[-3+yyTop]), ((RestArgNode)yyVals[-1+yyTop]), null, ((BlockArgNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case298_line1117(Object yyVal, Object[] yyVals, int yyTop) {
+                  Node body = ((Node)yyVals[-1+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[-1+yyTop]);
+                  yyVal = new UntilNode(getPosition(((Token)yyVals[-6+yyTop])), support.getConditionNode(((Node)yyVals[-4+yyTop])), body);
+    return yyVal;
+}
+public Object case466_line1774(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = ((ListNode)yyVals[-1+yyTop]);
     return yyVal;
 }
-public Object case429_line1598(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyerrok();
-                   yyVal = null;
+public Object case345_line1292(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
     return yyVal;
 }
-public Object case372_line1376(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((Node)yyVals[0+yyTop]) instanceof EvStrNode ? new DStrNode(getPosition(((Node)yyVals[0+yyTop]))).add(((Node)yyVals[0+yyTop])) : ((Node)yyVals[0+yyTop]);
-    return yyVal;
-}
-public Object case190_line767(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "**", ((Node)yyVals[0+yyTop]), getPosition()), "-@");
-    return yyVal;
-}
-public Object case9_line319(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.setState(LexState.EXPR_FNAME);
-    return yyVal;
-}
-public Object case92_line641(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case92_line643(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.new_colon3(getPosition(((Token)yyVals[-1+yyTop])), (String) ((Token)yyVals[0+yyTop]).getValue());
     return yyVal;
 }
-public Object case33_line432(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case33_line434(Object yyVal, Object[] yyVals, int yyTop) {
                   ((AssignableNode)yyVals[-2+yyTop]).setValueNode(((Node)yyVals[0+yyTop]));
 		  yyVal = ((MultipleAsgnNode)yyVals[-2+yyTop]);
                   ((MultipleAsgnNode)yyVals[-2+yyTop]).setPosition(getPosition(((MultipleAsgnNode)yyVals[-2+yyTop])));
     return yyVal;
 }
-public Object case307_line1149(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new Boolean(support.isInDef());
-                  support.setInDef(false);
+public Object case190_line769(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "**", ((Node)yyVals[0+yyTop]), getPosition()), "-@");
     return yyVal;
 }
-public Object case15_line336(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case15_line338(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new IfNode(getPosition(((Node)yyVals[-2+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])), ((Node)yyVals[-2+yyTop]), null);
     return yyVal;
 }
-public Object case21_line365(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case21_line367(Object yyVal, Object[] yyVals, int yyTop) {
                   support.getResult().addBeginNode(new PreExeNode(getPosition(((Node)yyVals[-1+yyTop])), support.getCurrentScope(), ((Node)yyVals[-1+yyTop])));
                   support.popCurrentScope();
                   yyVal = null; /*XXX 0;*/
     return yyVal;
 }
-public Object case433_line1617(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.new_args(getPosition(((ListNode)yyVals[-3+yyTop])), ((ListNode)yyVals[-3+yyTop]), ((ListNode)yyVals[-1+yyTop]), null, null, ((BlockArgNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case191_line770(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(support.getOperatorCallNode(((FloatNode)yyVals[-2+yyTop]), "**", ((Node)yyVals[0+yyTop]), getPosition()), "-@");
-    return yyVal;
-}
-public Object case23_line376(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case23_line378(Object yyVal, Object[] yyVals, int yyTop) {
                   support.checkExpression(((Node)yyVals[0+yyTop]));
                   yyVal = support.node_assign(((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case193_line780(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case193_line782(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.getOperatorCallNode(((Node)yyVals[0+yyTop]), "-@");
     return yyVal;
 }
-public Object case300_line1120(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case191_line772(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(support.getOperatorCallNode(((FloatNode)yyVals[-2+yyTop]), "**", ((Node)yyVals[0+yyTop]), getPosition()), "-@");
+    return yyVal;
+}
+public Object case356_line1327(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-3+yyTop])), ((ListNode)yyVals[-3+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case84_line607(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case198_line797(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), ">", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case418_line1570(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new Token("true", Tokens.kTRUE, ((Token)yyVals[0+yyTop]).getPosition());
+    return yyVal;
+}
+public Object case300_line1124(Object yyVal, Object[] yyVals, int yyTop) {
 /* TODO: MRI is just a when node.  We need this extra logic for IDE consumers (null in casenode statement should be implicit nil)*/
 /*                  if (support.getConfiguration().hasExtraPositionInformation()) {*/
                       yyVal = support.newCaseNode(getPosition(((Token)yyVals[-3+yyTop])), null, ((Node)yyVals[-1+yyTop]));
@@ -2241,61 +2274,11 @@ public Object case300_line1120(Object yyVal, Object[] yyVals, int yyTop) {
 /*                  }*/
     return yyVal;
 }
-public Object case279_line1046(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_colon3(getPosition(((Token)yyVals[-1+yyTop])), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case342_line1275(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
-    return yyVal;
-}
-public Object case84_line605(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case198_line795(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), ">", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case367_line1358(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (((Node)yyVals[0+yyTop]) != null) {
-                      yyVal = ((Node)yyVals[0+yyTop]);
-                  } else {
-                      yyVal = new NilNode(getPosition());
-                  }
-    return yyVal;
-}
-public Object case59_line511(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case59_line513(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.new_yield(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case493_line1808(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyerrok();
-    return yyVal;
-}
-public Object case445_line1655(Object yyVal, Object[] yyVals, int yyTop) {
-                   String identifier = (String) ((Token)yyVals[0+yyTop]).getValue();
-                   if (support.getCurrentScope().getLocalScope().isDefined(identifier) >= 0) {
-                       yyerror("duplicate argument name");
-                   }
-
-		   support.getCurrentScope().getLocalScope().addVariable(identifier);
-                   yyVal = ((Token)yyVals[0+yyTop]);
-    return yyVal;
-}
-public Object case334_line1237(Object yyVal, Object[] yyVals, int yyTop) {
-    return yyVal;
-}
-public Object case330_line1227(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new IfNode(getPosition(((Token)yyVals[-4+yyTop])), support.getConditionNode(((Node)yyVals[-3+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case222_line869(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.checkExpression(((Node)yyVals[-1+yyTop]));
-		  yyVal = new NewlineNode(getPosition(((Token)yyVals[-2+yyTop])), support.newSplatNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[-1+yyTop])));
-    return yyVal;
-}
-public Object case24_line380(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case24_line382(Object yyVal, Object[] yyVals, int yyTop) {
                   support.checkExpression(((Node)yyVals[0+yyTop]));
 		  if (((MultipleAsgnNode)yyVals[-2+yyTop]).getHeadNode() != null) {
 		      ((MultipleAsgnNode)yyVals[-2+yyTop]).setValueNode(new ToAryNode(getPosition(((MultipleAsgnNode)yyVals[-2+yyTop])), ((Node)yyVals[0+yyTop])));
@@ -2305,27 +2288,40 @@ public Object case24_line380(Object yyVal, Object[] yyVals, int yyTop) {
 		  yyVal = ((MultipleAsgnNode)yyVals[-2+yyTop]);
     return yyVal;
 }
-public Object case90_line636(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case85_line610(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case90_line638(Object yyVal, Object[] yyVals, int yyTop) {
                   yyerror("class/module name must be CONSTANT");
     return yyVal;
 }
-public Object case285_line1074(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new YieldNode(getPosition(((Token)yyVals[-2+yyTop])), null, false);
-    return yyVal;
-}
-public Object case212_line837(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case212_line839(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.newOrNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case45_line465(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case184_line751(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "+", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case45_line467(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new BreakNode(getPosition(((Token)yyVals[-1+yyTop])), support.ret_args(((Node)yyVals[0+yyTop]), getPosition(((Token)yyVals[-1+yyTop]))));
     return yyVal;
 }
-public Object case81_line594(Object yyVal, Object[] yyVals, int yyTop) {
-	          support.backrefAssignError(((Node)yyVals[0+yyTop]));
+public Object case495_line1824(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = null;
     return yyVal;
 }
-public Object case2_line272(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case420_line1576(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new Token("__FILE__", Tokens.k__FILE__, ((Token)yyVals[0+yyTop]).getPosition());
+    return yyVal;
+}
+public Object case340_line1265(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new IterNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), support.getCurrentScope(), ((Node)yyVals[-1+yyTop]));
+                  support.popCurrentScope();
+    return yyVal;
+}
+public Object case2_line274(Object yyVal, Object[] yyVals, int yyTop) {
                   if (((Node)yyVals[0+yyTop]) != null) {
                       /* last expression should not be void */
                       if (((Node)yyVals[0+yyTop]) instanceof BlockNode) {
@@ -2337,178 +2333,141 @@ public Object case2_line272(Object yyVal, Object[] yyVals, int yyTop) {
                   support.getResult().setAST(support.addRootNode(((Node)yyVals[0+yyTop]), getPosition(((Node)yyVals[0+yyTop]))));
     return yyVal;
 }
-public Object case455_line1710(Object yyVal, Object[] yyVals, int yyTop) {
-                  String identifier = (String) ((Token)yyVals[0+yyTop]).getValue();
-
-                  if (support.getCurrentScope().getLocalScope().isDefined(identifier) >= 0) {
-                      yyerror("duplicate rest argument name");
-                  }
-
-                  yyVal = new RestArgNode(getPosition(((Token)yyVals[-1+yyTop])), (String) ((Token)yyVals[0+yyTop]).getValue(), support.getCurrentScope().getLocalScope().addVariable(identifier));
+public Object case81_line596(Object yyVal, Object[] yyVals, int yyTop) {
+	          support.backrefAssignError(((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case448_line1675(Object yyVal, Object[] yyVals, int yyTop) {
-                   support.allowDubyExtension(((ISourcePositionHolder)yyVals[-4+yyTop]).getPosition());
-                   ((ListNode)yyVals[-4+yyTop]).add(new TypedArgumentNode(((ISourcePositionHolder)yyVals[-2+yyTop]).getPosition(), (String) ((Token)yyVals[-2+yyTop]).getValue(), ((Node)yyVals[0+yyTop])));
-                   ((ListNode)yyVals[-4+yyTop]).setPosition(getPosition(((ListNode)yyVals[-4+yyTop])));
-		   yyVal = ((ListNode)yyVals[-4+yyTop]);
+public Object case429_line1605(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyerrok();
+                   yyVal = null;
     return yyVal;
 }
-public Object case408_line1545(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = ((FloatNode)yyVals[0+yyTop]);
+public Object case285_line1078(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new ZYieldNode(getPosition(((Token)yyVals[-2+yyTop])));
     return yyVal;
 }
-public Object case277_line1036(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (((Node)yyVals[-1+yyTop]) != null) {
-                      /* compstmt position includes both parens around it*/
-                      ((ISourcePositionHolder) ((Node)yyVals[-1+yyTop])).setPosition(getPosition(((Token)yyVals[-2+yyTop])));
-                  }
-		  yyVal = ((Node)yyVals[-1+yyTop]);
-    return yyVal;
-}
-public Object case29_line415(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case29_line417(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new OpAsgnNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop]), ((Node)yyVals[0+yyTop]), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[-1+yyTop]).getValue());
     return yyVal;
 }
-public Object case206_line819(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new NotNode(getPosition(((Node)yyVals[-2+yyTop])), support.getMatchNode(((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop])));
+public Object case1_line271(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.setState(LexState.EXPR_BEG);
+                  support.initTopLocalVariables();
     return yyVal;
 }
-public Object case236_line918(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_blk_pass(support.newSplatNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[-1+yyTop])), ((BlockPassNode)yyVals[0+yyTop]));
+public Object case46_line470(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new NextNode(getPosition(((Token)yyVals[-1+yyTop])), support.ret_args(((Node)yyVals[0+yyTop]), getPosition(((Token)yyVals[-1+yyTop]))));
     return yyVal;
 }
-public Object case401_line1518(Object yyVal, Object[] yyVals, int yyTop) {
-                   lexer.setState(LexState.EXPR_END);
-                   yyVal = ((Token)yyVals[0+yyTop]);
-		   ((ISourcePositionHolder)yyVal).setPosition(getPosition(((Token)yyVals[-1+yyTop])));
+public Object case277_line1038(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (((Node)yyVals[-1+yyTop]) != null) {
+                      /* compstmt position includes both parens around it*/
+                      ((ISourcePositionHolder) ((Node)yyVals[-1+yyTop])).setPosition(getPosition(((Token)yyVals[-2+yyTop])));
+                      yyVal = ((Node)yyVals[-1+yyTop]);
+                  } else {
+                      yyVal = new NilNode(getPosition(((Token)yyVals[-2+yyTop])));
+                  }
     return yyVal;
 }
-public Object case397_line1505(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new GlobalVarNode(((Token)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue());
+public Object case391_line1482(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.literal_concat(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case353_line1310(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new IterNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), support.getCurrentScope(), ((Node)yyVals[-1+yyTop]));
-                  support.popCurrentScope();
+public Object case343_line1285(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
     return yyVal;
 }
-public Object case57_line505(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case57_line507(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.new_call(((Node)yyVals[-4+yyTop]), ((Token)yyVals[-2+yyTop]), ((Node)yyVals[-1+yyTop]), ((IterNode)yyVals[0+yyTop])); 
     return yyVal;
 }
-public Object case234_line909(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((ListNode)yyVals[-3+yyTop]).add(new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
-                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case238_line924(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case238_line926(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.arg_blk_pass(support.newArrayNode(getPosition(((Node)yyVals[-3+yyTop])), ((Node)yyVals[-3+yyTop])).addAll(((ListNode)yyVals[-1+yyTop])), ((BlockPassNode)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case73_line557(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case73_line559(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = ((ListNode)yyVals[-2+yyTop]).add(((Node)yyVals[-1+yyTop]));
     return yyVal;
 }
-public Object case224_line877(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case224_line879(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = ((Node)yyVals[-2+yyTop]);
 		  ((Node)yyVal).setPosition(getPosition(((Token)yyVals[-3+yyTop])));
     return yyVal;
 }
-public Object case422_line1577(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.gettable(((Token)yyVals[0+yyTop]));
+public Object case290_line1091(Object yyVal, Object[] yyVals, int yyTop) {
+	          if (((Node)yyVals[-1+yyTop]) != null && 
+                      ((BlockAcceptingNode)yyVals[-1+yyTop]).getIterNode() instanceof BlockPassNode) {
+                      throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition(((Node)yyVals[-1+yyTop])), lexer.getCurrentLine(), "Both block arg and actual block given.");
+		  }
+		  yyVal = ((BlockAcceptingNode)yyVals[-1+yyTop]).setIterNode(((IterNode)yyVals[0+yyTop]));
+		  ((Node)yyVal).setPosition(getPosition(((Node)yyVals[-1+yyTop])));
     return yyVal;
 }
-public Object case395_line1491(Object yyVal, Object[] yyVals, int yyTop) {
-		   yyVal = lexer.getStrTerm();
-		   lexer.setStrTerm(null);
-		   lexer.setState(LexState.EXPR_BEG);
-                   lexer.getConditionState().stop();
-	           lexer.getCmdArgumentState().stop();
+public Object case237_line923(Object yyVal, Object[] yyVals, int yyTop) {
     return yyVal;
 }
-public Object case223_line874(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new ArrayNode(getPosition(((Token)yyVals[-2+yyTop])));
+public Object case301_line1132(Object yyVal, Object[] yyVals, int yyTop) {
+		  yyVal = ((Node)yyVals[-1+yyTop]);
     return yyVal;
 }
-public Object case67_line538(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new MultipleAsgnNode(getPosition(((ListNode)yyVals[-1+yyTop])), ((ListNode)yyVals[-1+yyTop]), new StarNode(getPosition()));
-    return yyVal;
-}
-public Object case237_line921(Object yyVal, Object[] yyVals, int yyTop) {
-    return yyVal;
-}
-public Object case72_line554(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case72_line556(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.newArrayNode(((Node)yyVals[-1+yyTop]).getPosition(), ((Node)yyVals[-1+yyTop]));
     return yyVal;
 }
-public Object case295_line1105(Object yyVal, Object[] yyVals, int yyTop) {
-                  Node body = ((Node)yyVals[-1+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[-1+yyTop]);
-                  yyVal = new WhileNode(getPosition(((Token)yyVals[-6+yyTop])), support.getConditionNode(((Node)yyVals[-4+yyTop])), body);
+public Object case223_line876(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new ArrayNode(getPosition(((Token)yyVals[-2+yyTop])));
     return yyVal;
 }
-public Object case31_line421(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case31_line423(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.node_assign(((Node)yyVals[-2+yyTop]), new SValueNode(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[0+yyTop])));
     return yyVal;
 }
-public Object case66_line535(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case257_line991(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.checkExpression(((Node)yyVals[0+yyTop]));
+                  yyVal = new BlockPassNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case66_line537(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new MultipleAsgnNode(getPosition(((ListNode)yyVals[-2+yyTop])), ((ListNode)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case178_line724(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case178_line726(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new OpAsgnNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop]), ((Node)yyVals[0+yyTop]), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[-1+yyTop]).getValue());
     return yyVal;
 }
-public Object case254_line978(Object yyVal, Object[] yyVals, int yyTop) {
-                  warnings.warn(ID.ARGUMENT_EXTRA_SPACE, getPosition(((Token)yyVals[-2+yyTop])), "don't put space before argument parentheses");
-	          yyVal = null;
+public Object case381_line1445(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = ((ListNode)yyVals[-2+yyTop]).add(((Node)yyVals[-1+yyTop]) instanceof EvStrNode ? new DStrNode(getPosition(((ListNode)yyVals[-2+yyTop]))).add(((Node)yyVals[-1+yyTop])) : ((Node)yyVals[-1+yyTop]));
     return yyVal;
 }
-public Object case460_line1736(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((BlockArgNode)yyVals[0+yyTop]);
-    return yyVal;
-}
-public Object case383_line1443(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.literal_concat(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case260_line999(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newArrayNode(getPosition2(((Node)yyVals[0+yyTop])), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case210_line831(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case210_line833(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), ">>", ((Node)yyVals[0+yyTop]), getPosition());
     return yyVal;
 }
-public Object case240_line930(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case240_line932(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.arg_concat(getPosition(((Node)yyVals[-4+yyTop])), support.newArrayNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop])), ((Node)yyVals[-1+yyTop]));
                   yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case316_line1191(Object yyVal, Object[] yyVals, int yyTop) {
-                  /* TODO: We should use implicit nil for body, but problem (punt til later)*/
-                  Node body = ((Node)yyVals[-1+yyTop]); /*$8 == null ? NilImplicitNode.NIL : $8;*/
-
-                  yyVal = new DefsNode(getPosition(((Token)yyVals[-8+yyTop])), ((Node)yyVals[-7+yyTop]), new ArgumentNode(((Token)yyVals[-4+yyTop]).getPosition(), (String) ((Token)yyVals[-4+yyTop]).getValue()), ((ArgsNode)yyVals[-2+yyTop]), support.getCurrentScope(), body);
-                  support.popCurrentScope();
-                  support.setInSingle(support.getInSingle() - 1);
+public Object case295_line1109(Object yyVal, Object[] yyVals, int yyTop) {
+                  Node body = ((Node)yyVals[-1+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[-1+yyTop]);
+                  yyVal = new WhileNode(getPosition(((Token)yyVals[-6+yyTop])), support.getConditionNode(((Node)yyVals[-4+yyTop])), body);
     return yyVal;
 }
-public Object case427_line1593(Object yyVal, Object[] yyVals, int yyTop) {
-                   lexer.setState(LexState.EXPR_BEG);
+public Object case463_line1757(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.setState(LexState.EXPR_BEG);
     return yyVal;
 }
-public Object case349_line1297(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new ZSuperNode(((Token)yyVals[0+yyTop]).getPosition());
+public Object case296_line1113(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.getConditionState().begin();
     return yyVal;
 }
-public Object case173_line694(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case173_line696(Object yyVal, Object[] yyVals, int yyTop) {
                   ISourcePosition position = getPosition(((Token)yyVals[-1+yyTop]));
                   Node body = ((Node)yyVals[0+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[0+yyTop]);
                   yyVal = support.node_assign(((Node)yyVals[-4+yyTop]), new RescueNode(position, ((Node)yyVals[-2+yyTop]), new RescueBodyNode(position, null, body, null), null));
     return yyVal;
 }
-public Object case88_line623(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case88_line625(Object yyVal, Object[] yyVals, int yyTop) {
                   if (support.isInDef() || support.isInSingle()) {
 		      yyerror("dynamic constant assignment");
 		  }
@@ -2518,46 +2477,125 @@ public Object case88_line623(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new ConstDeclNode(position, null, support.new_colon3(position, (String) ((Token)yyVals[0+yyTop]).getValue()), NilImplicitNode.NIL);
     return yyVal;
 }
-public Object case308_line1152(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new Integer(support.getInSingle());
-                  support.setInSingle(0);
-		  support.pushLocalScope();
-    return yyVal;
-}
-public Object case19_line356(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case19_line358(Object yyVal, Object[] yyVals, int yyTop) {
                   Node body = ((Node)yyVals[0+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[0+yyTop]);
 	          yyVal = new RescueNode(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop]), new RescueBodyNode(getPosition(((Node)yyVals[-2+yyTop])), null, body, null), null);
     return yyVal;
 }
-public Object case253_line976(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case253_line978(Object yyVal, Object[] yyVals, int yyTop) {
 		  lexer.setState(LexState.EXPR_ENDARG);
     return yyVal;
 }
-public Object case39_line450(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case455_line1718(Object yyVal, Object[] yyVals, int yyTop) {
+                  String identifier = (String) ((Token)yyVals[0+yyTop]).getValue();
+
+                  if (support.getCurrentScope().getLocalScope().isDefined(identifier) >= 0) {
+                      yyerror("duplicate rest argument name");
+                  }
+
+                  yyVal = new RestArgNode(getPosition(((Token)yyVals[-1+yyTop])), (String) ((Token)yyVals[0+yyTop]).getValue(), support.getCurrentScope().getLocalScope().addVariable(identifier));
+    return yyVal;
+}
+public Object case416_line1564(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new Token("nil", Tokens.kNIL, ((Token)yyVals[0+yyTop]).getPosition());
+    return yyVal;
+}
+public Object case398_line1515(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new InstVarNode(((Token)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case353_line1317(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new IterNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), support.getCurrentScope(), ((Node)yyVals[-1+yyTop]));
+                  support.popCurrentScope();
+    return yyVal;
+}
+public Object case39_line452(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new NotNode(getPosition(((Token)yyVals[-1+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])));
     return yyVal;
 }
-public Object case406_line1528(Object yyVal, Object[] yyVals, int yyTop) {
-                   lexer.setState(LexState.EXPR_END);
+public Object case316_line1195(Object yyVal, Object[] yyVals, int yyTop) {
+                  /* TODO: We should use implicit nil for body, but problem (punt til later)*/
+                  Node body = ((Node)yyVals[-1+yyTop]); /*$8 == null ? NilImplicitNode.NIL : $8;*/
 
-                   /* DStrNode: :"some text #{some expression}"*/
-                   /* StrNode: :"some text"*/
-                   /* EvStrNode :"#{some expression}"*/
-                   if (((Node)yyVals[-1+yyTop]) == null) yyerror("empty symbol literal");
-
-                   if (((Node)yyVals[-1+yyTop]) instanceof DStrNode) {
-                       yyVal = new DSymbolNode(getPosition(((Token)yyVals[-2+yyTop])), ((DStrNode)yyVals[-1+yyTop]));
-                   } else {
-                       yyVal = new DSymbolNode(getPosition(((Token)yyVals[-2+yyTop])));
-                       ((DSymbolNode)yyVal).add(((Node)yyVals[-1+yyTop]));
-                   }
+                  yyVal = new DefsNode(getPosition(((Token)yyVals[-8+yyTop])), ((Node)yyVals[-7+yyTop]), new ArgumentNode(((Token)yyVals[-4+yyTop]).getPosition(), (String) ((Token)yyVals[-4+yyTop]).getValue()), ((ArgsNode)yyVals[-2+yyTop]), support.getCurrentScope(), body);
+                  support.popCurrentScope();
+                  support.setInSingle(support.getInSingle() - 1);
     return yyVal;
 }
-public Object case203_line810(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case395_line1498(Object yyVal, Object[] yyVals, int yyTop) {
+		   yyVal = lexer.getStrTerm();
+		   lexer.setStrTerm(null);
+		   lexer.setState(LexState.EXPR_BEG);
+                   lexer.getConditionState().stop();
+	           lexer.getCmdArgumentState().stop();
+    return yyVal;
+}
+public Object case308_line1156(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = Integer.valueOf(support.getInSingle());
+                  support.setInSingle(0);
+		  support.pushLocalScope();
+    return yyVal;
+}
+public Object case53_line495(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_fcall(((Token)yyVals[-2+yyTop]), ((Node)yyVals[-1+yyTop]), ((IterNode)yyVals[0+yyTop])); 
+    return yyVal;
+}
+public Object case203_line812(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "===", ((Node)yyVals[0+yyTop]), getPosition());
     return yyVal;
 }
-public Object case174_line699(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case370_line1376(Object yyVal, Object[] yyVals, int yyTop) {
+                  /* FIXME: We may be intern'ing more than once.*/
+                  yyVal = new SymbolNode(((Token)yyVals[0+yyTop]).getPosition(), ((String) ((Token)yyVals[0+yyTop]).getValue()).intern());
+    return yyVal;
+}
+public Object case354_line1322(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newWhenNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-3+yyTop]), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case281_line1060(Object yyVal, Object[] yyVals, int yyTop) {
+                  ISourcePosition position = getPosition(((Token)yyVals[-2+yyTop]));
+                  if (((Node)yyVals[-1+yyTop]) == null) {
+                      yyVal = new ZArrayNode(position); /* zero length array */
+                  } else {
+                      yyVal = ((Node)yyVals[-1+yyTop]);
+                      ((ISourcePositionHolder)yyVal).setPosition(position);
+                  }
+    return yyVal;
+}
+public Object case263_line1011(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-3+yyTop])), ((ListNode)yyVals[-3+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case309_line1160(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new SClassNode(getPosition(((Token)yyVals[-7+yyTop])), ((Node)yyVals[-5+yyTop]), support.getCurrentScope(), ((Node)yyVals[-1+yyTop]));
+                  support.popCurrentScope();
+                  support.setInDef(((Boolean)yyVals[-4+yyTop]).booleanValue());
+                  support.setInSingle(((Integer)yyVals[-2+yyTop]).intValue());
+    return yyVal;
+}
+public Object case444_line1660(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyerror("formal argument cannot be a class variable");
+    return yyVal;
+}
+public Object case394_line1494(Object yyVal, Object[] yyVals, int yyTop) {
+		   lexer.setStrTerm(((StrTerm)yyVals[-1+yyTop]));
+	           yyVal = new EvStrNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case94_line649(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_colon2(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case186_line757(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "*", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case8_line317(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((Node)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case174_line701(Object yyVal, Object[] yyVals, int yyTop) {
 		  support.checkExpression(((Node)yyVals[0+yyTop]));
 		  String asgnOp = (String) ((Token)yyVals[-1+yyTop]).getValue();
 
@@ -2574,76 +2612,35 @@ public Object case174_line699(Object yyVal, Object[] yyVals, int yyTop) {
 		  }
     return yyVal;
 }
-public Object case176_line718(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new OpAsgnNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop]), ((Node)yyVals[0+yyTop]), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[-1+yyTop]).getValue());
+public Object case461_line1747(Object yyVal, Object[] yyVals, int yyTop) {
+	          yyVal = null;
     return yyVal;
 }
-public Object case247_line958(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_concat(getPosition(((Node)yyVals[-8+yyTop])), support.newArrayNode(getPosition(((Node)yyVals[-8+yyTop])), ((Node)yyVals[-8+yyTop])).addAll(((ListNode)yyVals[-6+yyTop])).add(new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
-                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+public Object case431_line1617(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = ((Node)yyVals[-1+yyTop]);
     return yyVal;
 }
-public Object case53_line493(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_fcall(((Token)yyVals[-2+yyTop]), ((Node)yyVals[-1+yyTop]), ((IterNode)yyVals[0+yyTop])); 
+public Object case352_line1315(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.pushBlockScope();
     return yyVal;
 }
-public Object case313_line1176(Object yyVal, Object[] yyVals, int yyTop) {
-                  /* TODO: We should use implicit nil for body, but problem (punt til later)*/
-                  Node body = ((Node)yyVals[-1+yyTop]); /*$5 == null ? NilImplicitNode.NIL : $5;*/
-
-                  /* NOEX_PRIVATE for toplevel */
-                  yyVal = new DefnNode(getPosition(((Token)yyVals[-5+yyTop])), new ArgumentNode(((Token)yyVals[-4+yyTop]).getPosition(), (String) ((Token)yyVals[-4+yyTop]).getValue()), ((ArgsNode)yyVals[-2+yyTop]), support.getCurrentScope(), body);
-                  support.popCurrentScope();
-                  support.setInDef(false);
+public Object case248_line964(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_blk_pass(support.newSplatNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[-1+yyTop])), ((BlockPassNode)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case348_line1294(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_super(((Node)yyVals[0+yyTop]), ((Token)yyVals[-1+yyTop]));
+public Object case7_line314(Object yyVal, Object[] yyVals, int yyTop) {
+	          yyVal = support.appendToBlock(((Node)yyVals[-2+yyTop]), support.newline_node(((Node)yyVals[0+yyTop]), getPosition(((Node)yyVals[0+yyTop]))));
     return yyVal;
 }
-public Object case442_line1646(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyerror("formal argument cannot be a instance variable");
+public Object case189_line766(Object yyVal, Object[] yyVals, int yyTop) {
+		  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "**", ((Node)yyVals[0+yyTop]), getPosition());
     return yyVal;
 }
-public Object case409_line1548(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.negateInteger(((Node)yyVals[0+yyTop]));
+public Object case103_line670(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.setState(LexState.EXPR_FNAME);
     return yyVal;
 }
-public Object case393_line1483(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = lexer.getStrTerm();
-		   lexer.setStrTerm(null);
-		   lexer.setState(LexState.EXPR_BEG);
-    return yyVal;
-}
-public Object case94_line647(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_colon2(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case305_line1138(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (support.isInDef() || support.isInSingle()) {
-                      yyerror("class definition in method body");
-                  }
-		  support.pushLocalScope();
-    return yyVal;
-}
-public Object case186_line755(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "*", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case8_line315(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((Node)yyVals[0+yyTop]);
-    return yyVal;
-}
-public Object case351_line1304(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new IterNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), support.getCurrentScope(), ((Node)yyVals[-1+yyTop]));
-                  support.popCurrentScope();
-    return yyVal;
-}
-public Object case332_line1232(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((Node)yyVals[0+yyTop]);
-    return yyVal;
-}
-public Object case3_line284(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case3_line286(Object yyVal, Object[] yyVals, int yyTop) {
                   Node node = ((Node)yyVals[-3+yyTop]);
 
 		  if (((RescueBodyNode)yyVals[-2+yyTop]) != null) {
@@ -2660,114 +2657,127 @@ public Object case3_line284(Object yyVal, Object[] yyVals, int yyTop) {
 	          yyVal = node;
     return yyVal;
 }
-public Object case248_line962(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_blk_pass(support.newSplatNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[-1+yyTop])), ((BlockPassNode)yyVals[0+yyTop]));
+public Object case286_line1081(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new ZYieldNode(getPosition(((Token)yyVals[0+yyTop])));
     return yyVal;
 }
-public Object case7_line312(Object yyVal, Object[] yyVals, int yyTop) {
-	          yyVal = support.appendToBlock(((Node)yyVals[-2+yyTop]), support.newline_node(((Node)yyVals[0+yyTop]), getPosition(((Node)yyVals[0+yyTop]))));
+public Object case456_line1727(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new UnnamedRestArgNode(((Token)yyVals[0+yyTop]).getPosition(), support.getCurrentScope().getLocalScope().addVariable("*"));
     return yyVal;
 }
-public Object case189_line764(Object yyVal, Object[] yyVals, int yyTop) {
-		  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "**", ((Node)yyVals[0+yyTop]), getPosition());
+public Object case432_line1622(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.new_args(getPosition(((ListNode)yyVals[-5+yyTop])), ((ListNode)yyVals[-5+yyTop]), ((ListNode)yyVals[-3+yyTop]), ((RestArgNode)yyVals[-1+yyTop]), null, ((BlockArgNode)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case450_line1688(Object yyVal, Object[] yyVals, int yyTop) {
-                   String identifier = (String) ((Token)yyVals[-2+yyTop]).getValue();
-
-                   if (support.getCurrentScope().getLocalScope().isDefined(identifier) >= 0) {
-                       yyerror("duplicate optional argument name");
-                   }
-		   support.getCurrentScope().getLocalScope().addVariable(identifier);
-                   yyVal = support.assignable(((Token)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
+public Object case427_line1600(Object yyVal, Object[] yyVals, int yyTop) {
+                   lexer.setState(LexState.EXPR_BEG);
     return yyVal;
 }
-public Object case219_line859(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((ListNode)yyVals[-1+yyTop]);
+public Object case389_line1475(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.literal_concat(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case196_line789(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "&", ((Node)yyVals[0+yyTop]), getPosition());
+public Object case357_line1330(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new SplatNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case306_line1143(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case349_line1304(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new ZSuperNode(((Token)yyVals[0+yyTop]).getPosition());
+    return yyVal;
+}
+public Object case332_line1236(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((Node)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case320_line1212(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new RetryNode(((Token)yyVals[0+yyTop]).getPosition());
+    return yyVal;
+}
+public Object case250_line970(Object yyVal, Object[] yyVals, int yyTop) {
+	          yyVal = Long.valueOf(lexer.getCmdArgumentState().begin());
+    return yyVal;
+}
+public Object case197_line794(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "<=>", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case195_line788(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "^", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case341_line1271(Object yyVal, Object[] yyVals, int yyTop) {
+                  /* Workaround for JRUBY-2326 (MRI does not enter this production for some reason)*/
+                  if (((Node)yyVals[-1+yyTop]) instanceof YieldNode) {
+                      throw new SyntaxException(PID.BLOCK_GIVEN_TO_YIELD, getPosition(((Node)yyVals[-1+yyTop])), lexer.getCurrentLine(), "block given to yield");
+                  }
+	          if (((BlockAcceptingNode)yyVals[-1+yyTop]).getIterNode() instanceof BlockPassNode) {
+                      throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition(((Node)yyVals[-1+yyTop])), lexer.getCurrentLine(), "Both block arg and actual block given.");
+                  }
+		  yyVal = ((BlockAcceptingNode)yyVals[-1+yyTop]).setIterNode(((IterNode)yyVals[0+yyTop]));
+		  ((Node)yyVal).setPosition(getPosition(((Node)yyVals[-1+yyTop])));
+    return yyVal;
+}
+public Object case89_line634(Object yyVal, Object[] yyVals, int yyTop) {
+                   support.backrefAssignError(((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case16_line341(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new IfNode(getPosition(((Node)yyVals[-2+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])), null, ((Node)yyVals[-2+yyTop]));
+    return yyVal;
+}
+public Object case306_line1147(Object yyVal, Object[] yyVals, int yyTop) {
                   Node body = ((Node)yyVals[-1+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[-1+yyTop]);
 
                   yyVal = new ClassNode(getPosition(((Token)yyVals[-5+yyTop])), ((Colon3Node)yyVals[-4+yyTop]), support.getCurrentScope(), body, ((Node)yyVals[-3+yyTop]));
                   support.popCurrentScope();
     return yyVal;
 }
-public Object case195_line786(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "^", ((Node)yyVals[0+yyTop]), getPosition());
+public Object case446_line1674(Object yyVal, Object[] yyVals, int yyTop) {
+                    support.allowDubyExtension(((ISourcePositionHolder)yyVals[-2+yyTop]).getPosition());
+                    yyVal = new ListNode(((ISourcePositionHolder)yyVals[-2+yyTop]).getPosition());
+                    ((ListNode) yyVal).add(new TypedArgumentNode(((ISourcePositionHolder)yyVals[-2+yyTop]).getPosition(), (String) ((Token)yyVals[-2+yyTop]).getValue(), ((Node)yyVals[0+yyTop])));
     return yyVal;
 }
-public Object case441_line1643(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyerror("formal argument cannot be a constant");
+public Object case439_line1643(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.new_args(getPosition(((BlockArgNode)yyVals[0+yyTop])), null, null, null, null, ((BlockArgNode)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case197_line792(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "<=>", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case388_line1465(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new StrNode(((Token)yyVals[0+yyTop]).getPosition(), ByteList.create(""));
-    return yyVal;
-}
-public Object case89_line632(Object yyVal, Object[] yyVals, int yyTop) {
-                   support.backrefAssignError(((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case314_line1185(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.setState(LexState.EXPR_FNAME);
-    return yyVal;
-}
-public Object case311_line1167(Object yyVal, Object[] yyVals, int yyTop) {
-                  Node body = ((Node)yyVals[-1+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[-1+yyTop]);
-
-                  yyVal = new ModuleNode(getPosition(((Token)yyVals[-4+yyTop])), ((Colon3Node)yyVals[-3+yyTop]), support.getCurrentScope(), body);
-                  support.popCurrentScope();
-    return yyVal;
-}
-public Object case438_line1632(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.new_args(getPosition(((RestArgNode)yyVals[-1+yyTop])), null, null, ((RestArgNode)yyVals[-1+yyTop]), null, ((BlockArgNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case386_line1457(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new ArrayNode(getPosition());
-    return yyVal;
-}
-public Object case262_line1006(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case262_line1008(Object yyVal, Object[] yyVals, int yyTop) {
 		  yyVal = ((ListNode)yyVals[-2+yyTop]).add(((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case230_line894(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_blk_pass(((ListNode)yyVals[-1+yyTop]), ((BlockPassNode)yyVals[0+yyTop]));
+public Object case443_line1657(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyerror("formal argument cannot be an global variable");
     return yyVal;
 }
-public Object case490_line1802(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyerrok();
+public Object case348_line1301(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_super(((Node)yyVals[0+yyTop]), ((Token)yyVals[-1+yyTop]));
     return yyVal;
 }
-public Object case215_line846(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case314_line1189(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.setState(LexState.EXPR_FNAME);
+    return yyVal;
+}
+public Object case215_line848(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = ((Node)yyVals[0+yyTop]);
     return yyVal;
 }
-public Object case221_line866(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case221_line868(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.newArrayNode(getPosition(((ListNode)yyVals[-1+yyTop])), new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
     return yyVal;
 }
-public Object case22_line370(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case22_line372(Object yyVal, Object[] yyVals, int yyTop) {
                   if (support.isInDef() || support.isInSingle()) {
                       warnings.warn(ID.END_IN_METHOD, getPosition(((Token)yyVals[-3+yyTop])), "END in method; use at_exit");
                   }
                   yyVal = new PostExeNode(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]));
     return yyVal;
 }
-public Object case49_line477(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case49_line479(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
     return yyVal;
 }
-public Object case79_line576(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case79_line578(Object yyVal, Object[] yyVals, int yyTop) {
                   if (support.isInDef() || support.isInSingle()) {
 		      yyerror("dynamic constant assignment");
 		  }
@@ -2777,792 +2787,54 @@ public Object case79_line576(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new ConstDeclNode(position, null, support.new_colon2(position, ((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue()), NilImplicitNode.NIL);
     return yyVal;
 }
-public Object case235_line913(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case230_line896(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_blk_pass(((ListNode)yyVals[-1+yyTop]), ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case235_line915(Object yyVal, Object[] yyVals, int yyTop) {
                   support.checkExpression(((Node)yyVals[-1+yyTop]));
 		  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-6+yyTop])), ((ListNode)yyVals[-6+yyTop]).add(new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
                   yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case278_line1043(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_colon2(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case440_line1638(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.new_args(support.createEmptyArgsNodePosition(getPosition()), null, null, null, null, null);
-    return yyVal;
-}
-public Object case410_line1551(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.negateFloat(((FloatNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case63_line523(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case63_line525(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new MultipleAsgnNode(getPosition(((Token)yyVals[-2+yyTop])), support.newArrayNode(getPosition(((Token)yyVals[-2+yyTop])), ((MultipleAsgnNode)yyVals[-1+yyTop])), null);
     return yyVal;
 }
-public Object case214_line843(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case214_line845(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new IfNode(getPosition(((Node)yyVals[-4+yyTop])), support.getConditionNode(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case99_line658(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.setState(LexState.EXPR_END);
-                  yyVal = yyVals[0+yyTop];
-    return yyVal;
-}
-public Object case292_line1098(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new IfNode(getPosition(((Token)yyVals[-5+yyTop])), support.getConditionNode(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[-2+yyTop]));
-    return yyVal;
-}
-public Object case78_line573(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case78_line575(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
     return yyVal;
 }
-public Object case436_line1626(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.new_args(getPosition(((ListNode)yyVals[-3+yyTop])), null, ((ListNode)yyVals[-3+yyTop]), ((RestArgNode)yyVals[-1+yyTop]), null, ((BlockArgNode)yyVals[0+yyTop]));
+public Object case71_line551(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((MultipleAsgnNode)yyVals[-1+yyTop]);
     return yyVal;
 }
-public Object case375_line1387(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((Node)yyVals[-1+yyTop]);
-                  ((ISourcePositionHolder)yyVal).setPosition(getPosition(((Token)yyVals[-2+yyTop])));
-    return yyVal;
-}
-public Object case14_line333(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case14_line335(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = ((Node)yyVals[0+yyTop]);
     return yyVal;
 }
-public Object case280_line1049(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (((Node)yyVals[-3+yyTop]) instanceof SelfNode) {
-                      yyVal = support.new_fcall(new Token("[]", getPosition(((Node)yyVals[-3+yyTop]))), ((Node)yyVals[-1+yyTop]), null);
-                  } else {
-                      yyVal = support.new_call(((Node)yyVals[-3+yyTop]), new Token("[]", getPosition(((Node)yyVals[-3+yyTop]))), ((Node)yyVals[-1+yyTop]), null);
-                  }
-    return yyVal;
-}
-public Object case205_line816(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case205_line818(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.getMatchNode(((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case466_line1766(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((ListNode)yyVals[-1+yyTop]);
+public Object case278_line1047(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_colon2(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
     return yyVal;
 }
-public Object case374_line1382(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.literal_concat(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
+public Object case469_line1786(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((ListNode)yyVals[-2+yyTop]).addAll(((ListNode)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case337_line1244(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new ZeroArgNode(getPosition(((Token)yyVals[0+yyTop])));
-    return yyVal;
-}
-public Object case208_line825(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[0+yyTop]), "~");
-    return yyVal;
-}
-public Object case216_line850(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case216_line852(Object yyVal, Object[] yyVals, int yyTop) {
 	          support.checkExpression(((Node)yyVals[0+yyTop]));
 	          yyVal = ((Node)yyVals[0+yyTop]);   
     return yyVal;
 }
-public Object case283_line1068(Object yyVal, Object[] yyVals, int yyTop) {
-		  yyVal = new ReturnNode(((Token)yyVals[0+yyTop]).getPosition(), NilImplicitNode.NIL);
-    return yyVal;
-}
-public Object case451_line1699(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new BlockNode(getPosition(((Node)yyVals[0+yyTop]))).add(((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case449_line1681(Object yyVal, Object[] yyVals, int yyTop) {
-                   ((ListNode)yyVals[-2+yyTop]).add(new ArgumentNode(((ISourcePositionHolder)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue()));
-                   ((ListNode)yyVals[-2+yyTop]).setPosition(getPosition(((ListNode)yyVals[-2+yyTop])));
-		   yyVal = ((ListNode)yyVals[-2+yyTop]);
-    return yyVal;
-}
-public Object case345_line1285(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
-    return yyVal;
-}
-public Object case51_line484(Object yyVal, Object[] yyVals, int yyTop) {
-                    yyVal = new IterNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), support.getCurrentScope(), ((Node)yyVals[-1+yyTop]));
-                    support.popCurrentScope();
-    return yyVal;
-}
-public Object case83_line602(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.aryset(((Node)yyVals[-3+yyTop]), ((Node)yyVals[-1+yyTop]));
-    return yyVal;
-}
-public Object case65_line531(Object yyVal, Object[] yyVals, int yyTop) {
-/*mirko: check*/
-                  yyVal = new MultipleAsgnNode(getPosition(((Node)yyVals[-1+yyTop])), ((ListNode)yyVals[-1+yyTop]).add(((Node)yyVals[0+yyTop])), null);
-    return yyVal;
-}
-public Object case423_line1582(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.assignable(((Token)yyVals[0+yyTop]), NilImplicitNode.NIL);
-    return yyVal;
-}
-public Object case244_line946(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newArrayNode(getPosition(((Node)yyVals[-3+yyTop])), ((Node)yyVals[-3+yyTop])).add(new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
-                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case288_line1083(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new FCallNoArgBlockNode(getPosition(((Token)yyVals[-1+yyTop])), (String) ((Token)yyVals[-1+yyTop]).getValue(), ((IterNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case61_line517(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((MultipleAsgnNode)yyVals[-1+yyTop]);
-    return yyVal;
-}
-public Object case177_line721(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new OpAsgnNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop]), ((Node)yyVals[0+yyTop]), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[-1+yyTop]).getValue());
-    return yyVal;
-}
-public Object case336_line1241(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new ZeroArgNode(getPosition(((Token)yyVals[-1+yyTop])));
-    return yyVal;
-}
-public Object case37_line444(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newOrNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case44_line462(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new ReturnNode(getPosition(((Token)yyVals[-1+yyTop])), support.ret_args(((Node)yyVals[0+yyTop]), getPosition(((Token)yyVals[-1+yyTop]))));
-    return yyVal;
-}
-public Object case74_line561(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.assignable(((Token)yyVals[0+yyTop]), NilImplicitNode.NIL);
-    return yyVal;
-}
-public Object case50_line482(Object yyVal, Object[] yyVals, int yyTop) {
-                    support.pushBlockScope();
-    return yyVal;
-}
-public Object case225_line881(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newArrayNode(getPosition(((Token)yyVals[-3+yyTop])), ((Node)yyVals[-2+yyTop]));
-    return yyVal;
-}
-public Object case303_line1133(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.getConditionState().end();
-    return yyVal;
-}
-public Object case27_line409(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new OpAsgnNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop]), ((Node)yyVals[0+yyTop]), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[-1+yyTop]).getValue());
-    return yyVal;
-}
-public Object case344_line1282(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_fcall(((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
-    return yyVal;
-}
-public Object case201_line804(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "<=", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case318_line1202(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new NextNode(((Token)yyVals[0+yyTop]).getPosition(), NilImplicitNode.NIL);
-    return yyVal;
-}
-public Object case242_line938(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newArrayNode(getPosition(((ListNode)yyVals[-1+yyTop])), new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
-                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case418_line1563(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new Token("true", Tokens.kTRUE, ((Token)yyVals[0+yyTop]).getPosition());
-    return yyVal;
-}
-public Object case246_line954(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_concat(getPosition(((Node)yyVals[-6+yyTop])), support.newArrayNode(getPosition(((Node)yyVals[-6+yyTop])), ((Node)yyVals[-6+yyTop])).add(new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
-                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case294_line1103(Object yyVal, Object[] yyVals, int yyTop) {
-		  lexer.getConditionState().end();
-    return yyVal;
-}
-public Object case245_line950(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newArrayNode(getPosition(((Node)yyVals[-5+yyTop])), ((Node)yyVals[-5+yyTop])).addAll(((ListNode)yyVals[-3+yyTop])).add(new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
-                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case200_line801(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "<", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case255_line982(Object yyVal, Object[] yyVals, int yyTop) {
-		  lexer.setState(LexState.EXPR_ENDARG);
-    return yyVal;
-}
-public Object case28_line412(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new OpAsgnNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop]), ((Node)yyVals[0+yyTop]), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[-1+yyTop]).getValue());
-    return yyVal;
-}
-public Object case495_line1816(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = null;
-    return yyVal;
-}
-public Object case420_line1569(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new Token("__FILE__", Tokens.k__FILE__, ((Token)yyVals[0+yyTop]).getPosition());
-    return yyVal;
-}
-public Object case340_line1258(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new IterNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), support.getCurrentScope(), ((Node)yyVals[-1+yyTop]));
-                  support.popCurrentScope();
-    return yyVal;
-}
-public Object case302_line1131(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.getConditionState().begin();
-    return yyVal;
-}
-public Object case80_line585(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (support.isInDef() || support.isInSingle()) {
-		      yyerror("dynamic constant assignment");
-		  }
-
-                  ISourcePosition position = getPosition(((Token)yyVals[-1+yyTop]));
-
-                  yyVal = new ConstDeclNode(position, null, support.new_colon3(position, (String) ((Token)yyVals[0+yyTop]).getValue()), NilImplicitNode.NIL);
-    return yyVal;
-}
-public Object case93_line644(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_colon2(getPosition(((Token)yyVals[0+yyTop])), null, (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case20_line360(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (support.isInDef() || support.isInSingle()) {
-                      yyerror("BEGIN in method");
-                  }
-		  support.pushLocalScope();
-    return yyVal;
-}
-public Object case391_line1475(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.literal_concat(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case343_line1278(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
-    return yyVal;
-}
-public Object case188_line761(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "%", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case297_line1111(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.getConditionState().end();
-    return yyVal;
-}
-public Object case434_line1620(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.new_args(getPosition(((ListNode)yyVals[-3+yyTop])), ((ListNode)yyVals[-3+yyTop]), null, ((RestArgNode)yyVals[-1+yyTop]), null, ((BlockArgNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case194_line783(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "|", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case464_line1751(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (((Node)yyVals[-2+yyTop]) == null) {
-                      yyerror("can't define single method for ().");
-                  } else if (((Node)yyVals[-2+yyTop]) instanceof ILiteralNode) {
-                      yyerror("can't define single method for literals.");
-                  }
-		  support.checkExpression(((Node)yyVals[-2+yyTop]));
-                  yyVal = ((Node)yyVals[-2+yyTop]);
-    return yyVal;
-}
-public Object case428_line1595(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = ((Node)yyVals[-1+yyTop]);
-    return yyVal;
-}
-public Object case85_line608(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case463_line1749(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.setState(LexState.EXPR_BEG);
-    return yyVal;
-}
-public Object case381_line1438(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = ((ListNode)yyVals[-2+yyTop]).add(((Node)yyVals[-1+yyTop]) instanceof EvStrNode ? new DStrNode(getPosition(((ListNode)yyVals[-2+yyTop]))).add(((Node)yyVals[-1+yyTop])) : ((Node)yyVals[-1+yyTop]));
-    return yyVal;
-}
-public Object case184_line749(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "+", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case46_line468(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new NextNode(getPosition(((Token)yyVals[-1+yyTop])), support.ret_args(((Node)yyVals[0+yyTop]), getPosition(((Token)yyVals[-1+yyTop]))));
-    return yyVal;
-}
-public Object case76_line567(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case290_line1087(Object yyVal, Object[] yyVals, int yyTop) {
-	          if (((Node)yyVals[-1+yyTop]) != null && 
-                      ((BlockAcceptingNode)yyVals[-1+yyTop]).getIterNode() instanceof BlockPassNode) {
-                      throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition(((Node)yyVals[-1+yyTop])), "Both block arg and actual block given.");
-		  }
-		  yyVal = ((BlockAcceptingNode)yyVals[-1+yyTop]).setIterNode(((IterNode)yyVals[0+yyTop]));
-		  ((Node)yyVal).setPosition(getPosition(((Node)yyVals[-1+yyTop])));
-    return yyVal;
-}
-public Object case301_line1128(Object yyVal, Object[] yyVals, int yyTop) {
-		  yyVal = ((Node)yyVals[-1+yyTop]);
-    return yyVal;
-}
-public Object case273_line1024(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new FCallNoArgNode(((Token)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case98_line653(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.setState(LexState.EXPR_END);
-                  yyVal = ((Token)yyVals[0+yyTop]);
-    return yyVal;
-}
-public Object case416_line1557(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new Token("nil", Tokens.kNIL, ((Token)yyVals[0+yyTop]).getPosition());
-    return yyVal;
-}
-public Object case398_line1508(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new InstVarNode(((Token)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case226_line884(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((ListNode)yyVals[-4+yyTop]).add(((Node)yyVals[-2+yyTop]));
-    return yyVal;
-}
-public Object case12_line327(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new VAliasNode(getPosition(((Token)yyVals[-2+yyTop])), (String) ((Token)yyVals[-1+yyTop]).getValue(), "$" + ((BackRefNode)yyVals[0+yyTop]).getType()); /* XXX*/
-    return yyVal;
-}
-public Object case1_line269(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.setState(LexState.EXPR_BEG);
-                  support.initTopLocalVariables();
-    return yyVal;
-}
-public Object case69_line544(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new MultipleAsgnNode(getPosition(((Token)yyVals[0+yyTop])), null, new StarNode(getPosition()));
-    return yyVal;
-}
-public Object case213_line840(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new DefinedNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case11_line324(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new VAliasNode(getPosition(((Token)yyVals[-2+yyTop])), (String) ((Token)yyVals[-1+yyTop]).getValue(), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case444_line1652(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyerror("formal argument cannot be a class variable");
-    return yyVal;
-}
-public Object case370_line1369(Object yyVal, Object[] yyVals, int yyTop) {
-                  /* FIXME: We may be intern'ing more than once.*/
-                  yyVal = new SymbolNode(((Token)yyVals[0+yyTop]).getPosition(), ((String) ((Token)yyVals[0+yyTop]).getValue()).intern());
-    return yyVal;
-}
-public Object case354_line1315(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newWhenNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-3+yyTop]), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case82_line599(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.assignable(((Token)yyVals[0+yyTop]), NilImplicitNode.NIL);
-    return yyVal;
-}
-public Object case257_line989(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.checkExpression(((Node)yyVals[0+yyTop]));
-                  yyVal = new BlockPassNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case233_line905(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-4+yyTop])), support.newArrayNode(getPosition(((ListNode)yyVals[-4+yyTop])), new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
-                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case55_line499(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_call(((Node)yyVals[-4+yyTop]), ((Token)yyVals[-2+yyTop]), ((Node)yyVals[-1+yyTop]), ((IterNode)yyVals[0+yyTop])); 
-    return yyVal;
-}
-public Object case296_line1109(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.getConditionState().begin();
-    return yyVal;
-}
-public Object case284_line1071(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_yield(getPosition(((Token)yyVals[-3+yyTop])), ((Node)yyVals[-1+yyTop]));
-    return yyVal;
-}
-public Object case447_line1671(Object yyVal, Object[] yyVals, int yyTop) {
-                    yyVal = new ListNode(((ISourcePositionHolder)yyVals[0+yyTop]).getPosition());
-                    ((ListNode) yyVal).add(new ArgumentNode(((ISourcePositionHolder)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue()));
-    return yyVal;
-}
-public Object case431_line1609(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = ((Node)yyVals[-1+yyTop]);
-    return yyVal;
-}
-public Object case394_line1487(Object yyVal, Object[] yyVals, int yyTop) {
-		   lexer.setStrTerm(((StrTerm)yyVals[-1+yyTop]));
-	           yyVal = new EvStrNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case56_line502(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
-    return yyVal;
-}
-public Object case207_line822(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new NotNode(getPosition(((Token)yyVals[-1+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])));
-    return yyVal;
-}
-public Object case276_line1032(Object yyVal, Object[] yyVals, int yyTop) {
-		 if (warnings.isVerbose()) warnings.warning(ID.GROUPED_EXPRESSION, getPosition(((Token)yyVals[-4+yyTop])), "(...) interpreted as grouped expression");
-                  yyVal = ((Node)yyVals[-3+yyTop]);
-    return yyVal;
-}
-public Object case461_line1739(Object yyVal, Object[] yyVals, int yyTop) {
-	          yyVal = null;
-    return yyVal;
-}
-public Object case421_line1572(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new Token("__LINE__", Tokens.k__LINE__, ((Token)yyVals[0+yyTop]).getPosition());
-    return yyVal;
-}
-public Object case396_line1497(Object yyVal, Object[] yyVals, int yyTop) {
-		   lexer.setStrTerm(((StrTerm)yyVals[-2+yyTop]));
-                   lexer.getConditionState().restart();
-	           lexer.getCmdArgumentState().restart();
-
-		   yyVal = support.newEvStrNode(getPosition(((Token)yyVals[-3+yyTop])), ((Node)yyVals[-1+yyTop]));
-    return yyVal;
-}
-public Object case376_line1393(Object yyVal, Object[] yyVals, int yyTop) {
-                  ISourcePosition position = getPosition(((Token)yyVals[-2+yyTop]));
-
-		  if (((Node)yyVals[-1+yyTop]) == null) {
-		      yyVal = new XStrNode(position, null);
-		  } else if (((Node)yyVals[-1+yyTop]) instanceof StrNode) {
-                      yyVal = new XStrNode(position, (ByteList) ((StrNode)yyVals[-1+yyTop]).getValue().clone());
-		  } else if (((Node)yyVals[-1+yyTop]) instanceof DStrNode) {
-                      yyVal = new DXStrNode(position, ((DStrNode)yyVals[-1+yyTop]));
-
-                      ((Node)yyVal).setPosition(position);
-                  } else {
-                      yyVal = new DXStrNode(position).add(((Node)yyVals[-1+yyTop]));
-		  }
-    return yyVal;
-}
-public Object case352_line1308(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.pushBlockScope();
-    return yyVal;
-}
-public Object case321_line1212(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.checkExpression(((Node)yyVals[0+yyTop]));
-		  yyVal = ((Node)yyVals[0+yyTop]);
-    return yyVal;
-}
-public Object case32_line424(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (((MultipleAsgnNode)yyVals[-2+yyTop]).getHeadNode() != null) {
-		      ((MultipleAsgnNode)yyVals[-2+yyTop]).setValueNode(new ToAryNode(getPosition(((MultipleAsgnNode)yyVals[-2+yyTop])), ((Node)yyVals[0+yyTop])));
-		  } else {
-		      ((MultipleAsgnNode)yyVals[-2+yyTop]).setValueNode(support.newArrayNode(getPosition(((MultipleAsgnNode)yyVals[-2+yyTop])), ((Node)yyVals[0+yyTop])));
-		  }
-		  yyVal = ((MultipleAsgnNode)yyVals[-2+yyTop]);
-    return yyVal;
-}
-public Object case243_line942(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-4+yyTop])), support.newArrayNode(getPosition(((ListNode)yyVals[-4+yyTop])), new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
-                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case179_line727(Object yyVal, Object[] yyVals, int yyTop) {
-	          yyerror("constant re-assignment");
-    return yyVal;
-}
-public Object case291_line1095(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new IfNode(getPosition(((Token)yyVals[-5+yyTop])), support.getConditionNode(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[-1+yyTop]));
-    return yyVal;
-}
-public Object case456_line1719(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new UnnamedRestArgNode(((Token)yyVals[0+yyTop]).getPosition(), support.getCurrentScope().getLocalScope().addVariable("*"));
-    return yyVal;
-}
-public Object case432_line1614(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.new_args(getPosition(((ListNode)yyVals[-5+yyTop])), ((ListNode)yyVals[-5+yyTop]), ((ListNode)yyVals[-3+yyTop]), ((RestArgNode)yyVals[-1+yyTop]), null, ((BlockArgNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case26_line405(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_opElementAsgnNode(getPosition(((Node)yyVals[-5+yyTop])), ((Node)yyVals[-5+yyTop]), (String) ((Token)yyVals[-1+yyTop]).getValue(), ((Node)yyVals[-3+yyTop]), ((Node)yyVals[0+yyTop]));
-
-    return yyVal;
-}
-public Object case309_line1156(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new SClassNode(getPosition(((Token)yyVals[-7+yyTop])), ((Node)yyVals[-5+yyTop]), support.getCurrentScope(), ((Node)yyVals[-1+yyTop]));
-                  support.popCurrentScope();
-                  support.setInDef(((Boolean)yyVals[-4+yyTop]).booleanValue());
-                  support.setInSingle(((Integer)yyVals[-2+yyTop]).intValue());
-    return yyVal;
-}
-public Object case220_line862(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.checkExpression(((Node)yyVals[-1+yyTop]));
-                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-4+yyTop])), ((ListNode)yyVals[-4+yyTop]), ((Node)yyVals[-1+yyTop]));
-    return yyVal;
-}
-public Object case281_line1056(Object yyVal, Object[] yyVals, int yyTop) {
-                  ISourcePosition position = getPosition(((Token)yyVals[-2+yyTop]));
-                  if (((Node)yyVals[-1+yyTop]) == null) {
-                      yyVal = new ZArrayNode(position); /* zero length array */
-                  } else {
-                      yyVal = ((Node)yyVals[-1+yyTop]);
-                      ((ISourcePositionHolder)yyVal).setPosition(position);
-                  }
-    return yyVal;
-}
-public Object case389_line1468(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.literal_concat(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case357_line1323(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new SplatNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case182_line736(Object yyVal, Object[] yyVals, int yyTop) {
-		  support.checkExpression(((Node)yyVals[-2+yyTop]));
-		  support.checkExpression(((Node)yyVals[0+yyTop]));
-    
-                  boolean isLiteral = ((Node)yyVals[-2+yyTop]) instanceof FixnumNode && ((Node)yyVals[0+yyTop]) instanceof FixnumNode;
-                  yyVal = new DotNode(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]), false, isLiteral);
-    return yyVal;
-}
-public Object case181_line733(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.backrefAssignError(((Node)yyVals[-2+yyTop]));
-    return yyVal;
-}
-public Object case446_line1666(Object yyVal, Object[] yyVals, int yyTop) {
-                    support.allowDubyExtension(((ISourcePositionHolder)yyVals[-2+yyTop]).getPosition());
-                    yyVal = new ListNode(((ISourcePositionHolder)yyVals[-2+yyTop]).getPosition());
-                    ((ListNode) yyVal).add(new TypedArgumentNode(((ISourcePositionHolder)yyVals[-2+yyTop]).getPosition(), (String) ((Token)yyVals[-2+yyTop]).getValue(), ((Node)yyVals[0+yyTop])));
-    return yyVal;
-}
-public Object case439_line1635(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.new_args(getPosition(((BlockArgNode)yyVals[0+yyTop])), null, null, null, null, ((BlockArgNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case341_line1264(Object yyVal, Object[] yyVals, int yyTop) {
-                  /* Workaround for JRUBY-2326 (MRI does not enter this production for some reason)*/
-                  if (((Node)yyVals[-1+yyTop]) instanceof YieldNode) {
-                      throw new SyntaxException(PID.BLOCK_GIVEN_TO_YIELD, getPosition(((Node)yyVals[-1+yyTop])), "block given to yield");
-                  }
-	          if (((BlockAcceptingNode)yyVals[-1+yyTop]).getIterNode() instanceof BlockPassNode) {
-                      throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition(((Node)yyVals[-1+yyTop])), "Both block arg and actual block given.");
-                  }
-		  yyVal = ((BlockAcceptingNode)yyVals[-1+yyTop]).setIterNode(((IterNode)yyVals[0+yyTop]));
-		  ((Node)yyVal).setPosition(getPosition(((Node)yyVals[-1+yyTop])));
-    return yyVal;
-}
-public Object case264_line1012(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newSplatNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case41_line455(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.checkExpression(((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case263_line1009(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-3+yyTop])), ((ListNode)yyVals[-3+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case443_line1649(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyerror("formal argument cannot be an global variable");
-    return yyVal;
-}
-public Object case199_line798(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), ">=", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case317_line1199(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new BreakNode(((Token)yyVals[0+yyTop]).getPosition(), NilImplicitNode.NIL);
-    return yyVal;
-}
-public Object case286_line1077(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new YieldNode(getPosition(((Token)yyVals[0+yyTop])), null, false);
-    return yyVal;
-}
-public Object case426_line1590(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = null;
-    return yyVal;
-}
-public Object case320_line1208(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new RetryNode(((Token)yyVals[0+yyTop]).getPosition());
-    return yyVal;
-}
-public Object case103_line668(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.setState(LexState.EXPR_FNAME);
-    return yyVal;
-}
-public Object case175_line715(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_opElementAsgnNode(getPosition(((Node)yyVals[-5+yyTop])), ((Node)yyVals[-5+yyTop]), (String) ((Token)yyVals[-1+yyTop]).getValue(), ((Node)yyVals[-3+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case52_line490(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_fcall(((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
-    return yyVal;
-}
-public Object case104_line670(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.appendToBlock(((Node)yyVals[-3+yyTop]), new UndefNode(getPosition(((Node)yyVals[-3+yyTop])), (String) ((Token)yyVals[0+yyTop]).getValue()));
-    return yyVal;
-}
-public Object case185_line752(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "-", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case469_line1778(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((ListNode)yyVals[-2+yyTop]).addAll(((ListNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case417_line1560(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new Token("self", Tokens.kSELF, ((Token)yyVals[0+yyTop]).getPosition());
-    return yyVal;
-}
-public Object case183_line743(Object yyVal, Object[] yyVals, int yyTop) {
-		  support.checkExpression(((Node)yyVals[-2+yyTop]));
-		  support.checkExpression(((Node)yyVals[0+yyTop]));
-                  boolean isLiteral = ((Node)yyVals[-2+yyTop]) instanceof FixnumNode && ((Node)yyVals[0+yyTop]) instanceof FixnumNode;
-                  yyVal = new DotNode(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]), true, isLiteral);
-    return yyVal;
-}
-public Object case347_line1291(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_call(((Node)yyVals[-2+yyTop]), ((Token)yyVals[0+yyTop]), null, null);
-    return yyVal;
-}
-public Object case36_line441(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newAndNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case250_line968(Object yyVal, Object[] yyVals, int yyTop) {
-	          yyVal = new Long(lexer.getCmdArgumentState().begin());
-    return yyVal;
-}
-public Object case16_line339(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new IfNode(getPosition(((Node)yyVals[-2+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])), null, ((Node)yyVals[-2+yyTop]));
-    return yyVal;
-}
-public Object case392_line1480(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = ((Node)yyVals[0+yyTop]);
-    return yyVal;
-}
-public Object case218_line856(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newArrayNode(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]));
-    return yyVal;
-}
-public Object case192_line773(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (support.isLiteral(((Node)yyVals[0+yyTop]))) {
-		      yyVal = ((Node)yyVals[0+yyTop]);
-		  } else {
-                      yyVal = support.getOperatorCallNode(((Node)yyVals[0+yyTop]), "+@");
-		  }
-    return yyVal;
-}
-public Object case452_line1702(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.appendToBlock(((ListNode)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case4_line301(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (((Node)yyVals[-1+yyTop]) instanceof BlockNode) {
-                      support.checkUselessStatements(((BlockNode)yyVals[-1+yyTop]));
-		  }
-                  yyVal = ((Node)yyVals[-1+yyTop]);
-    return yyVal;
-}
-public Object case17_line342(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (((Node)yyVals[-2+yyTop]) != null && ((Node)yyVals[-2+yyTop]) instanceof BeginNode) {
-                      yyVal = new WhileNode(getPosition(((Node)yyVals[-2+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])), ((BeginNode)yyVals[-2+yyTop]).getBodyNode(), false);
-                  } else {
-                      yyVal = new WhileNode(getPosition(((Node)yyVals[-2+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])), ((Node)yyVals[-2+yyTop]), true);
-                  }
-    return yyVal;
-}
-public Object case387_line1460(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = ((ListNode)yyVals[-2+yyTop]).add(((Node)yyVals[-1+yyTop]));
-    return yyVal;
-}
-public Object case350_line1302(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.pushBlockScope();
-    return yyVal;
-}
-public Object case229_line891(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newArrayNode(getPosition(((Node)yyVals[0+yyTop])), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case310_line1162(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (support.isInDef() || support.isInSingle()) { 
-                      yyerror("module definition in method body");
-                  }
-		  support.pushLocalScope();
-    return yyVal;
-}
-public Object case87_line614(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (support.isInDef() || support.isInSingle()) {
-		      yyerror("dynamic constant assignment");
-		  }
-			
-		  ISourcePosition position = getPosition(((Node)yyVals[-2+yyTop]));
-
-                  yyVal = new ConstDeclNode(position, null, support.new_colon2(position, ((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue()), NilImplicitNode.NIL);
-    return yyVal;
-}
-public Object case437_line1629(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.new_args(getPosition(((ListNode)yyVals[-1+yyTop])), null, ((ListNode)yyVals[-1+yyTop]), null, null, ((BlockArgNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case399_line1511(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new ClassVarNode(((Token)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case86_line611(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case71_line549(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((MultipleAsgnNode)yyVals[-1+yyTop]);
-    return yyVal;
-}
-public Object case231_line897(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-4+yyTop])), ((ListNode)yyVals[-4+yyTop]), ((Node)yyVals[-1+yyTop]));
-                  yyVal = support.arg_blk_pass(((Node)yyVal), ((BlockPassNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case360_line1330(Object yyVal, Object[] yyVals, int yyTop) {
-                  Node node;
-                  if (((Node)yyVals[-3+yyTop]) != null) {
-                     node = support.appendToBlock(support.node_assign(((Node)yyVals[-3+yyTop]), new GlobalVarNode(getPosition(((Token)yyVals[-5+yyTop])), "$!")), ((Node)yyVals[-1+yyTop]));
-                     if(((Node)yyVals[-1+yyTop]) != null) {
-                        node.setPosition(support.unwrapNewlineNode(((Node)yyVals[-1+yyTop])).getPosition());
-                     }
-		  } else {
-		     node = ((Node)yyVals[-1+yyTop]);
-                  }
-                  Node body = node == null ? NilImplicitNode.NIL : node;
-                  yyVal = new RescueBodyNode(getPosition(((Token)yyVals[-5+yyTop])), ((Node)yyVals[-4+yyTop]), body, ((RescueBodyNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case339_line1256(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.pushBlockScope();
-    return yyVal;
-}
-public Object case338_line1247(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((Node)yyVals[-1+yyTop]);
-
-		  /* Include pipes on multiple arg type*/
-                  if (((Node)yyVals[-1+yyTop]) instanceof MultipleAsgnNode) {
-		      ((Node)yyVals[-1+yyTop]).setPosition(((Token)yyVals[-2+yyTop]).getPosition());
-		  } 
-    return yyVal;
-}
-public Object case293_line1101(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.getConditionState().begin();
-    return yyVal;
-}
-public Object case68_line541(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new MultipleAsgnNode(getPosition(((Token)yyVals[-1+yyTop])), null, ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case18_line349(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case18_line351(Object yyVal, Object[] yyVals, int yyTop) {
                   if (((Node)yyVals[-2+yyTop]) != null && ((Node)yyVals[-2+yyTop]) instanceof BeginNode) {
                       yyVal = new UntilNode(getPosition(((Node)yyVals[-2+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])), ((BeginNode)yyVals[-2+yyTop]).getBodyNode(), false);
                   } else {
@@ -3570,154 +2842,150 @@ public Object case18_line349(Object yyVal, Object[] yyVals, int yyTop) {
                   }
     return yyVal;
 }
-public Object case312_line1173(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.setInDef(true);
-		  support.pushLocalScope();
+public Object case208_line827(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[0+yyTop]), "~");
     return yyVal;
 }
-public Object case48_line474(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
+public Object case51_line486(Object yyVal, Object[] yyVals, int yyTop) {
+                    yyVal = new IterNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), support.getCurrentScope(), ((Node)yyVals[-1+yyTop]));
+                    support.popCurrentScope();
     return yyVal;
 }
-public Object case261_line1002(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((ListNode)yyVals[-2+yyTop]).add(((Node)yyVals[0+yyTop]));
+public Object case83_line604(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.aryset(((Node)yyVals[-3+yyTop]), ((Node)yyVals[-1+yyTop]));
     return yyVal;
 }
-public Object case380_line1435(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new ArrayNode(getPosition());
+public Object case65_line533(Object yyVal, Object[] yyVals, int yyTop) {
+/*mirko: check*/
+                  yyVal = new MultipleAsgnNode(getPosition(((Node)yyVals[-1+yyTop])), ((ListNode)yyVals[-1+yyTop]).add(((Node)yyVals[0+yyTop])), null);
     return yyVal;
 }
-public Object case346_line1288(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
-    return yyVal;
-}
-public Object case232_line901(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newArrayNode(getPosition(((ListNode)yyVals[-1+yyTop])), new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
+public Object case244_line948(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newArrayNode(getPosition(((Node)yyVals[-3+yyTop])), ((Node)yyVals[-3+yyTop])).add(new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
                   yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case77_line570(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
+public Object case292_line1102(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new IfNode(getPosition(((Token)yyVals[-5+yyTop])), support.getConditionNode(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[-2+yyTop]));
     return yyVal;
 }
-public Object case10_line321(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new AliasNode(getPosition(((Token)yyVals[-3+yyTop])), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case304_line1135(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new ForNode(getPosition(((Token)yyVals[-8+yyTop])), ((Node)yyVals[-7+yyTop]), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[-4+yyTop]));
-    return yyVal;
-}
-public Object case64_line528(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new MultipleAsgnNode(getPosition(((ListNode)yyVals[0+yyTop])), ((ListNode)yyVals[0+yyTop]), null);
-    return yyVal;
-}
-public Object case209_line828(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "<<", ((Node)yyVals[0+yyTop]), getPosition());
-    return yyVal;
-}
-public Object case13_line330(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyerror("can't make alias for the number variables");
-    return yyVal;
-}
-public Object case239_line927(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_blk_pass(support.newArrayNode(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop])), ((BlockPassNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case54_line496(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
-    return yyVal;
-}
-public Object case204_line813(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new NotNode(getPosition(((Node)yyVals[-2+yyTop])), support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "==", ((Node)yyVals[0+yyTop]), getPosition()));
-    return yyVal;
-}
-public Object case58_line508(Object yyVal, Object[] yyVals, int yyTop) {
-		  yyVal = support.new_super(((Node)yyVals[0+yyTop]), ((Token)yyVals[-1+yyTop])); /* .setPosFrom($2);*/
-    return yyVal;
-}
-public Object case470_line1783(Object yyVal, Object[] yyVals, int yyTop) {
-                  ISourcePosition position;
-                  if (((Node)yyVals[-2+yyTop]) == null && ((Node)yyVals[0+yyTop]) == null) {
-                      position = getPosition(((Token)yyVals[-1+yyTop]));
-                  } else {
-                      position = getPosition(((Node)yyVals[-2+yyTop]));
-                  }
-
-                  yyVal = support.newArrayNode(position, ((Node)yyVals[-2+yyTop])).add(((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case462_line1743(Object yyVal, Object[] yyVals, int yyTop) {
-                  if (!(((Node)yyVals[0+yyTop]) instanceof SelfNode)) {
-		      support.checkExpression(((Node)yyVals[0+yyTop]));
-		  }
-		  yyVal = ((Node)yyVals[0+yyTop]);
-    return yyVal;
-}
-public Object case390_line1472(Object yyVal, Object[] yyVals, int yyTop) {
-		   yyVal = null;
-    return yyVal;
-}
-public Object case377_line1410(Object yyVal, Object[] yyVals, int yyTop) {
-		  int options = ((RegexpNode)yyVals[0+yyTop]).getOptions();
-		  Node node = ((Node)yyVals[-1+yyTop]);
-
-		  if (node == null) {
-                      yyVal = new RegexpNode(getPosition(((Token)yyVals[-2+yyTop])), ByteList.create(""), options & ~ReOptions.RE_OPTION_ONCE);
-		  } else if (node instanceof StrNode) {
-                      yyVal = new RegexpNode(((Node)yyVals[-1+yyTop]).getPosition(), (ByteList) ((StrNode) node).getValue().clone(), options & ~ReOptions.RE_OPTION_ONCE);
-		  } else if (node instanceof DStrNode) {
-                      yyVal = new DRegexpNode(getPosition(((Token)yyVals[-2+yyTop])), (DStrNode) node, options, (options & ReOptions.RE_OPTION_ONCE) != 0);
-		  } else {
-		      yyVal = new DRegexpNode(getPosition(((Token)yyVals[-2+yyTop])), options, (options & ReOptions.RE_OPTION_ONCE) != 0).add(node);
-                  }
-    return yyVal;
-}
-public Object case172_line689(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case172_line691(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.node_assign(((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
 		  /* FIXME: Consider fixing node_assign itself rather than single case*/
 		  ((Node)yyVal).setPosition(getPosition(((Node)yyVals[-2+yyTop])));
     return yyVal;
 }
-public Object case430_line1604(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = ((Node)yyVals[-2+yyTop]);
-                   ((ISourcePositionHolder)yyVal).setPosition(getPosition(((Token)yyVals[-3+yyTop])));
-                   lexer.setState(LexState.EXPR_BEG);
+public Object case61_line519(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((MultipleAsgnNode)yyVals[-1+yyTop]);
     return yyVal;
 }
-public Object case385_line1451(Object yyVal, Object[] yyVals, int yyTop) {
-		   yyVal = ((ListNode)yyVals[-1+yyTop]);
-                   ((ISourcePositionHolder)yyVal).setPosition(getPosition(((Token)yyVals[-2+yyTop])));
+public Object case58_line510(Object yyVal, Object[] yyVals, int yyTop) {
+		  yyVal = support.new_super(((Node)yyVals[0+yyTop]), ((Token)yyVals[-1+yyTop])); /* .setPosFrom($2);*/
     return yyVal;
 }
-public Object case384_line1448(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new ZArrayNode(getPosition(((Token)yyVals[-2+yyTop])));
+public Object case177_line723(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new OpAsgnNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop]), ((Node)yyVals[0+yyTop]), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[-1+yyTop]).getValue());
     return yyVal;
 }
-public Object case319_line1205(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new RedoNode(((Token)yyVals[0+yyTop]).getPosition());
+public Object case64_line530(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new MultipleAsgnNode(getPosition(((ListNode)yyVals[0+yyTop])), ((ListNode)yyVals[0+yyTop]), null);
     return yyVal;
 }
-public Object case465_line1763(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new ArrayNode(getPosition());
+public Object case209_line830(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "<<", ((Node)yyVals[0+yyTop]), getPosition());
     return yyVal;
 }
-public Object case419_line1566(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = new Token("false", Tokens.kFALSE, ((Token)yyVals[0+yyTop]).getPosition());
+public Object case452_line1710(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.appendToBlock(((ListNode)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case38_line447(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new NotNode(getPosition(((Token)yyVals[-1+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])));
+public Object case410_line1558(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.negateFloat(((FloatNode)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case75_line564(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.aryset(((Node)yyVals[-3+yyTop]), ((Node)yyVals[-1+yyTop]));
+public Object case337_line1249(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new ZeroArgNode(getPosition(((Token)yyVals[0+yyTop])));
+                  lexer.commandStart = true;
     return yyVal;
 }
-public Object case249_line965(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case44_line464(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new ReturnNode(getPosition(((Token)yyVals[-1+yyTop])), support.ret_args(((Node)yyVals[0+yyTop]), getPosition(((Token)yyVals[-1+yyTop]))));
     return yyVal;
 }
-public Object case25_line389(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case74_line563(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.assignable(((Token)yyVals[0+yyTop]), NilImplicitNode.NIL);
+    return yyVal;
+}
+public Object case50_line484(Object yyVal, Object[] yyVals, int yyTop) {
+                    support.pushBlockScope();
+    return yyVal;
+}
+public Object case225_line883(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newArrayNode(getPosition(((Token)yyVals[-3+yyTop])), ((Node)yyVals[-2+yyTop]));
+    return yyVal;
+}
+public Object case37_line446(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newOrNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case338_line1253(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((Node)yyVals[-1+yyTop]);
+                  lexer.commandStart = true;
+
+		  /* Include pipes on multiple arg type*/
+                  if (((Node)yyVals[-1+yyTop]) instanceof MultipleAsgnNode) {
+		      ((Node)yyVals[-1+yyTop]).setPosition(((Token)yyVals[-2+yyTop]).getPosition());
+		  } 
+    return yyVal;
+}
+public Object case201_line806(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "<=", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case288_line1087(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new FCallNoArgBlockNode(getPosition(((Token)yyVals[-1+yyTop])), (String) ((Token)yyVals[-1+yyTop]).getValue(), ((IterNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case437_line1637(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.new_args(getPosition(((ListNode)yyVals[-1+yyTop])), null, ((ListNode)yyVals[-1+yyTop]), null, null, ((BlockArgNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case374_line1389(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.literal_concat(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case339_line1263(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.pushBlockScope();
+    return yyVal;
+}
+public Object case336_line1245(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new ZeroArgNode(getPosition(((Token)yyVals[-1+yyTop])));
+                  lexer.commandStart = true;
+    return yyVal;
+}
+public Object case246_line956(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_concat(getPosition(((Node)yyVals[-6+yyTop])), support.newArrayNode(getPosition(((Node)yyVals[-6+yyTop])), ((Node)yyVals[-6+yyTop])).add(new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
+                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case245_line952(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newArrayNode(getPosition(((Node)yyVals[-5+yyTop])), ((Node)yyVals[-5+yyTop])).addAll(((ListNode)yyVals[-3+yyTop])).add(new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
+                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case200_line803(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "<", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case255_line984(Object yyVal, Object[] yyVals, int yyTop) {
+		  lexer.setState(LexState.EXPR_ENDARG);
+    return yyVal;
+}
+public Object case303_line1137(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.getConditionState().end();
+    return yyVal;
+}
+public Object case25_line391(Object yyVal, Object[] yyVals, int yyTop) {
  	          support.checkExpression(((Node)yyVals[0+yyTop]));
 
 		  String asgnOp = (String) ((Token)yyVals[-1+yyTop]).getValue();
@@ -3734,76 +3002,184 @@ public Object case25_line389(Object yyVal, Object[] yyVals, int yyTop) {
 		  }
     return yyVal;
 }
-public Object case282_line1065(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new HashNode(getPosition(((Token)yyVals[-2+yyTop])), ((ListNode)yyVals[-1+yyTop]));
+public Object case28_line414(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new OpAsgnNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop]), ((Node)yyVals[0+yyTop]), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[-1+yyTop]).getValue());
     return yyVal;
 }
-public Object case211_line834(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newAndNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
+public Object case380_line1442(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new ArrayNode(getPosition());
     return yyVal;
 }
-public Object case251_line970(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.getCmdArgumentState().reset(((Long)yyVals[-1+yyTop]).longValue());
-                  yyVal = ((Node)yyVals[0+yyTop]);
+public Object case346_line1295(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
     return yyVal;
 }
-public Object case202_line807(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "==", ((Node)yyVals[0+yyTop]), getPosition());
+public Object case318_line1206(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new NextNode(((Token)yyVals[0+yyTop]).getPosition(), NilImplicitNode.NIL);
     return yyVal;
 }
-public Object case256_line984(Object yyVal, Object[] yyVals, int yyTop) {
-                  warnings.warn(ID.ARGUMENT_EXTRA_SPACE, getPosition(((Token)yyVals[-3+yyTop])), "don't put space before argument parentheses");
-		  yyVal = ((Node)yyVals[-2+yyTop]);
+public Object case449_line1689(Object yyVal, Object[] yyVals, int yyTop) {
+                   ((ListNode)yyVals[-2+yyTop]).add(new ArgumentNode(((ISourcePositionHolder)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue()));
+                   ((ListNode)yyVals[-2+yyTop]).setPosition(getPosition(((ListNode)yyVals[-2+yyTop])));
+		   yyVal = ((ListNode)yyVals[-2+yyTop]);
     return yyVal;
 }
-public Object case299_line1117(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case423_line1589(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.assignable(((Token)yyVals[0+yyTop]), NilImplicitNode.NIL);
+    return yyVal;
+}
+public Object case294_line1107(Object yyVal, Object[] yyVals, int yyTop) {
+		  lexer.getConditionState().end();
+    return yyVal;
+}
+public Object case80_line587(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (support.isInDef() || support.isInSingle()) {
+		      yyerror("dynamic constant assignment");
+		  }
+
+                  ISourcePosition position = getPosition(((Token)yyVals[-1+yyTop]));
+
+                  yyVal = new ConstDeclNode(position, null, support.new_colon3(position, (String) ((Token)yyVals[0+yyTop]).getValue()), NilImplicitNode.NIL);
+    return yyVal;
+}
+public Object case30_line420(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.backrefAssignError(((Node)yyVals[-2+yyTop]));
+    return yyVal;
+}
+public Object case299_line1121(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.newCaseNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-3+yyTop]), ((Node)yyVals[-1+yyTop]));
     return yyVal;
 }
-public Object case258_line994(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = ((BlockPassNode)yyVals[0+yyTop]);
+public Object case93_line646(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_colon2(getPosition(((Token)yyVals[0+yyTop])), null, (String) ((Token)yyVals[0+yyTop]).getValue());
     return yyVal;
 }
-public Object case180_line730(Object yyVal, Object[] yyVals, int yyTop) {
-		  yyerror("constant re-assignment");
+public Object case20_line362(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (support.isInDef() || support.isInSingle()) {
+                      yyerror("BEGIN in method");
+                  }
+		  support.pushLocalScope();
     return yyVal;
 }
-public Object case241_line934(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_concat(getPosition(((Node)yyVals[-6+yyTop])), support.newArrayNode(getPosition(((Node)yyVals[-6+yyTop])), ((Node)yyVals[-6+yyTop])).addAll(new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
-                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+public Object case470_line1791(Object yyVal, Object[] yyVals, int yyTop) {
+                  ISourcePosition position;
+                  if (((Node)yyVals[-2+yyTop]) == null && ((Node)yyVals[0+yyTop]) == null) {
+                      position = getPosition(((Token)yyVals[-1+yyTop]));
+                  } else {
+                      position = getPosition(((Node)yyVals[-2+yyTop]));
+                  }
+
+                  yyVal = support.newArrayNode(position, ((Node)yyVals[-2+yyTop])).add(((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case379_line1429(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case462_line1751(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (!(((Node)yyVals[0+yyTop]) instanceof SelfNode)) {
+		      support.checkExpression(((Node)yyVals[0+yyTop]));
+		  }
+		  yyVal = ((Node)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case430_line1611(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = ((Node)yyVals[-2+yyTop]);
+                   ((ISourcePositionHolder)yyVal).setPosition(getPosition(((Token)yyVals[-3+yyTop])));
+                   lexer.setState(LexState.EXPR_BEG);
+                   lexer.commandStart = true;
+    return yyVal;
+}
+public Object case384_line1455(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new ZArrayNode(getPosition(((Token)yyVals[-2+yyTop])));
+    return yyVal;
+}
+public Object case344_line1289(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_fcall(((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
+    return yyVal;
+}
+public Object case6_line311(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newline_node(((Node)yyVals[0+yyTop]), getPosition(((Node)yyVals[0+yyTop])));
+    return yyVal;
+}
+public Object case188_line763(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "%", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case302_line1135(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.getConditionState().begin();
+    return yyVal;
+}
+public Object case187_line760(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "/", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case451_line1707(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new BlockNode(getPosition(((Node)yyVals[0+yyTop]))).add(((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case419_line1573(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new Token("false", Tokens.kFALSE, ((Token)yyVals[0+yyTop]).getPosition());
+    return yyVal;
+}
+public Object case194_line785(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "|", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case465_line1771(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new ArrayNode(getPosition());
+    return yyVal;
+}
+public Object case9_line321(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.setState(LexState.EXPR_FNAME);
+    return yyVal;
+}
+public Object case297_line1115(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.getConditionState().end();
+    return yyVal;
+}
+public Object case379_line1436(Object yyVal, Object[] yyVals, int yyTop) {
 		   yyVal = ((ListNode)yyVals[-1+yyTop]);
                    ((ISourcePositionHolder)yyVal).setPosition(getPosition(((Token)yyVals[-2+yyTop])));
     return yyVal;
 }
-public Object case287_line1080(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new DefinedNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-1+yyTop]));
+public Object case315_line1191(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.setInSingle(support.getInSingle() + 1);
+		  support.pushLocalScope();
+                  lexer.setState(LexState.EXPR_END); /* force for args */
     return yyVal;
 }
-public Object case274_line1027(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new BeginNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[-1+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[-1+yyTop]));
-    return yyVal;
-}
-public Object case275_line1030(Object yyVal, Object[] yyVals, int yyTop) {
-                  lexer.setState(LexState.EXPR_ENDARG); 
-    return yyVal;
-}
-public Object case362_line1347(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case362_line1354(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = support.newArrayNode(((Node)yyVals[0+yyTop]).getPosition(), ((Node)yyVals[0+yyTop]));
     return yyVal;
 }
-public Object case298_line1113(Object yyVal, Object[] yyVals, int yyTop) {
-                  Node body = ((Node)yyVals[-1+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[-1+yyTop]);
-                  yyVal = new UntilNode(getPosition(((Token)yyVals[-6+yyTop])), support.getConditionNode(((Node)yyVals[-4+yyTop])), body);
+public Object case76_line569(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
     return yyVal;
 }
-public Object case30_line418(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.backrefAssignError(((Node)yyVals[-2+yyTop]));
+public Object case273_line1026(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new FCallNoArgNode(((Token)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue());
     return yyVal;
 }
-public Object case459_line1727(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case98_line655(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.setState(LexState.EXPR_END);
+                  yyVal = ((Token)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case226_line886(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((ListNode)yyVals[-4+yyTop]).add(((Node)yyVals[-2+yyTop]));
+    return yyVal;
+}
+public Object case307_line1153(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = Boolean.valueOf(support.isInDef());
+                  support.setInDef(false);
+    return yyVal;
+}
+public Object case12_line329(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new VAliasNode(getPosition(((Token)yyVals[-2+yyTop])), (String) ((Token)yyVals[-1+yyTop]).getValue(), "$" + ((BackRefNode)yyVals[0+yyTop]).getType()); /* XXX*/
+    return yyVal;
+}
+public Object case69_line546(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new MultipleAsgnNode(getPosition(((Token)yyVals[0+yyTop])), null, new StarNode(getPosition()));
+    return yyVal;
+}
+public Object case459_line1735(Object yyVal, Object[] yyVals, int yyTop) {
                   String identifier = (String) ((Token)yyVals[0+yyTop]).getValue();
 
                   if (support.getCurrentScope().getLocalScope().isDefined(identifier) >= 0) {
@@ -3812,49 +3188,681 @@ public Object case459_line1727(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = new BlockArgNode(getPosition(((Token)yyVals[-1+yyTop])), support.getCurrentScope().getLocalScope().addVariable(identifier), identifier);
     return yyVal;
 }
-public Object case356_line1320(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-3+yyTop])), ((ListNode)yyVals[-3+yyTop]), ((Node)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case6_line309(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.newline_node(((Node)yyVals[0+yyTop]), getPosition(((Node)yyVals[0+yyTop])));
-    return yyVal;
-}
-public Object case102_line665(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = new UndefNode(getPosition(((Token)yyVals[0+yyTop])), (String) ((Token)yyVals[0+yyTop]).getValue());
-    return yyVal;
-}
-public Object case494_line1812(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = null;
-    return yyVal;
-}
-public Object case435_line1623(Object yyVal, Object[] yyVals, int yyTop) {
-                   yyVal = support.new_args(((ISourcePositionHolder)yyVals[-1+yyTop]).getPosition(), ((ListNode)yyVals[-1+yyTop]), null, null, null, ((BlockArgNode)yyVals[0+yyTop]));
-    return yyVal;
-}
-public Object case378_line1426(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case378_line1433(Object yyVal, Object[] yyVals, int yyTop) {
                    yyVal = new ZArrayNode(getPosition(((Token)yyVals[-2+yyTop])));
     return yyVal;
 }
-public Object case365_line1353(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case365_line1360(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = ((Node)yyVals[0+yyTop]);
     return yyVal;
 }
-public Object case361_line1343(Object yyVal, Object[] yyVals, int yyTop) {
+public Object case361_line1350(Object yyVal, Object[] yyVals, int yyTop) {
                   yyVal = null;
     return yyVal;
 }
-public Object case187_line758(Object yyVal, Object[] yyVals, int yyTop) {
-                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "/", ((Node)yyVals[0+yyTop]), getPosition());
+public Object case279_line1050(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_colon3(getPosition(((Token)yyVals[-1+yyTop])), (String) ((Token)yyVals[0+yyTop]).getValue());
     return yyVal;
 }
-public Object case315_line1187(Object yyVal, Object[] yyVals, int yyTop) {
-                  support.setInSingle(support.getInSingle() + 1);
+public Object case213_line842(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new DefinedNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case11_line326(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new VAliasNode(getPosition(((Token)yyVals[-2+yyTop])), (String) ((Token)yyVals[-1+yyTop]).getValue(), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case494_line1820(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = null;
+    return yyVal;
+}
+public Object case435_line1631(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.new_args(((ISourcePositionHolder)yyVals[-1+yyTop]).getPosition(), ((ListNode)yyVals[-1+yyTop]), null, null, null, ((BlockArgNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case434_line1628(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.new_args(getPosition(((ListNode)yyVals[-3+yyTop])), ((ListNode)yyVals[-3+yyTop]), null, ((RestArgNode)yyVals[-1+yyTop]), null, ((BlockArgNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case372_line1383(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((Node)yyVals[0+yyTop]) instanceof EvStrNode ? new DStrNode(getPosition(((Node)yyVals[0+yyTop]))).add(((Node)yyVals[0+yyTop])) : ((Node)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case233_line907(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-4+yyTop])), support.newArrayNode(getPosition(((ListNode)yyVals[-4+yyTop])), new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
+                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case222_line871(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.checkExpression(((Node)yyVals[-1+yyTop]));
+		  yyVal = new NewlineNode(getPosition(((Token)yyVals[-2+yyTop])), support.newSplatNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[-1+yyTop])));
+    return yyVal;
+}
+public Object case467_line1777(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (((ListNode)yyVals[-1+yyTop]).size() % 2 != 0) {
+                      yyerror("odd number list for Hash.");
+                  }
+                  yyVal = ((ListNode)yyVals[-1+yyTop]);
+    return yyVal;
+}
+public Object case464_line1759(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (((Node)yyVals[-2+yyTop]) == null) {
+                      yyerror("can't define single method for ().");
+                  } else if (((Node)yyVals[-2+yyTop]) instanceof ILiteralNode) {
+                      yyerror("can't define single method for literals.");
+                  }
+		  support.checkExpression(((Node)yyVals[-2+yyTop]));
+                  yyVal = ((Node)yyVals[-2+yyTop]);
+    return yyVal;
+}
+public Object case56_line504(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
+    return yyVal;
+}
+public Object case207_line824(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new NotNode(getPosition(((Token)yyVals[-1+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])));
+    return yyVal;
+}
+public Object case276_line1034(Object yyVal, Object[] yyVals, int yyTop) {
+		 if (warnings.isVerbose()) warnings.warning(ID.GROUPED_EXPRESSION, getPosition(((Token)yyVals[-4+yyTop])), "(...) interpreted as grouped expression");
+                  yyVal = ((Node)yyVals[-3+yyTop]);
+    return yyVal;
+}
+public Object case428_line1602(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = ((Node)yyVals[-1+yyTop]);
+    return yyVal;
+}
+public Object case334_line1241(Object yyVal, Object[] yyVals, int yyTop) {
+    return yyVal;
+}
+public Object case330_line1231(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new IfNode(getPosition(((Token)yyVals[-4+yyTop])), support.getConditionNode(((Node)yyVals[-3+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case55_line501(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_call(((Node)yyVals[-4+yyTop]), ((Token)yyVals[-2+yyTop]), ((Node)yyVals[-1+yyTop]), ((IterNode)yyVals[0+yyTop])); 
+    return yyVal;
+}
+public Object case32_line426(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (((MultipleAsgnNode)yyVals[-2+yyTop]).getHeadNode() != null) {
+		      ((MultipleAsgnNode)yyVals[-2+yyTop]).setValueNode(new ToAryNode(getPosition(((MultipleAsgnNode)yyVals[-2+yyTop])), ((Node)yyVals[0+yyTop])));
+		  } else {
+		      ((MultipleAsgnNode)yyVals[-2+yyTop]).setValueNode(support.newArrayNode(getPosition(((MultipleAsgnNode)yyVals[-2+yyTop])), ((Node)yyVals[0+yyTop])));
+		  }
+		  yyVal = ((MultipleAsgnNode)yyVals[-2+yyTop]);
+    return yyVal;
+}
+public Object case206_line821(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new NotNode(getPosition(((Node)yyVals[-2+yyTop])), support.getMatchNode(((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop])));
+    return yyVal;
+}
+public Object case236_line920(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_blk_pass(support.newSplatNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[-1+yyTop])), ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case243_line944(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-4+yyTop])), support.newArrayNode(getPosition(((ListNode)yyVals[-4+yyTop])), new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
+                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case179_line729(Object yyVal, Object[] yyVals, int yyTop) {
+	          yyerror("constant re-assignment");
+    return yyVal;
+}
+public Object case284_line1075(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_yield(getPosition(((Token)yyVals[-3+yyTop])), ((Node)yyVals[-1+yyTop]));
+    return yyVal;
+}
+public Object case82_line601(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.assignable(((Token)yyVals[0+yyTop]), NilImplicitNode.NIL);
+    return yyVal;
+}
+public Object case433_line1625(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.new_args(getPosition(((ListNode)yyVals[-3+yyTop])), ((ListNode)yyVals[-3+yyTop]), ((ListNode)yyVals[-1+yyTop]), null, null, ((BlockArgNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case342_line1282(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
+    return yyVal;
+}
+public Object case234_line911(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((ListNode)yyVals[-3+yyTop]).add(new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
+                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case220_line864(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.checkExpression(((Node)yyVals[-1+yyTop]));
+                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-4+yyTop])), ((ListNode)yyVals[-4+yyTop]), ((Node)yyVals[-1+yyTop]));
+    return yyVal;
+}
+public Object case26_line407(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_opElementAsgnNode(getPosition(((Node)yyVals[-5+yyTop])), ((Node)yyVals[-5+yyTop]), (String) ((Token)yyVals[-1+yyTop]).getValue(), ((Node)yyVals[-3+yyTop]), ((Node)yyVals[0+yyTop]));
+
+    return yyVal;
+}
+public Object case367_line1365(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (((Node)yyVals[0+yyTop]) != null) {
+                      yyVal = ((Node)yyVals[0+yyTop]);
+                  } else {
+                      yyVal = new NilNode(getPosition());
+                  }
+    return yyVal;
+}
+public Object case321_line1216(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.checkExpression(((Node)yyVals[0+yyTop]));
+		  yyVal = ((Node)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case67_line540(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new MultipleAsgnNode(getPosition(((ListNode)yyVals[-1+yyTop])), ((ListNode)yyVals[-1+yyTop]), new StarNode(getPosition()));
+    return yyVal;
+}
+public Object case182_line738(Object yyVal, Object[] yyVals, int yyTop) {
+		  support.checkExpression(((Node)yyVals[-2+yyTop]));
+		  support.checkExpression(((Node)yyVals[0+yyTop]));
+    
+                  boolean isLiteral = ((Node)yyVals[-2+yyTop]) instanceof FixnumNode && ((Node)yyVals[0+yyTop]) instanceof FixnumNode;
+                  yyVal = new DotNode(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]), false, isLiteral);
+    return yyVal;
+}
+public Object case254_line980(Object yyVal, Object[] yyVals, int yyTop) {
+                  warnings.warn(ID.ARGUMENT_EXTRA_SPACE, getPosition(((Token)yyVals[-2+yyTop])), "don't put space before argument parentheses");
+	          yyVal = null;
+    return yyVal;
+}
+public Object case291_line1099(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new IfNode(getPosition(((Token)yyVals[-5+yyTop])), support.getConditionNode(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[-1+yyTop]));
+    return yyVal;
+}
+public Object case264_line1014(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newSplatNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case181_line735(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.backrefAssignError(((Node)yyVals[-2+yyTop]));
+    return yyVal;
+}
+public Object case41_line457(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.checkExpression(((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case493_line1816(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyerrok();
+    return yyVal;
+}
+public Object case445_line1663(Object yyVal, Object[] yyVals, int yyTop) {
+                   String identifier = (String) ((Token)yyVals[0+yyTop]).getValue();
+                   if (support.getCurrentScope().getLocalScope().isDefined(identifier) >= 0) {
+                       yyerror("duplicate argument name");
+                   }
+
+		   support.getCurrentScope().getLocalScope().addVariable(identifier);
+                   yyVal = ((Token)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case447_line1679(Object yyVal, Object[] yyVals, int yyTop) {
+                    yyVal = new ListNode(((ISourcePositionHolder)yyVals[0+yyTop]).getPosition());
+                    ((ListNode) yyVal).add(new ArgumentNode(((ISourcePositionHolder)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue()));
+    return yyVal;
+}
+public Object case421_line1579(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new Token("__LINE__", Tokens.k__LINE__, ((Token)yyVals[0+yyTop]).getPosition());
+    return yyVal;
+}
+public Object case408_line1552(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = ((FloatNode)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case175_line717(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_opElementAsgnNode(getPosition(((Node)yyVals[-5+yyTop])), ((Node)yyVals[-5+yyTop]), (String) ((Token)yyVals[-1+yyTop]).getValue(), ((Node)yyVals[-3+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case52_line492(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_fcall(((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
+    return yyVal;
+}
+public Object case448_line1683(Object yyVal, Object[] yyVals, int yyTop) {
+                   support.allowDubyExtension(((ISourcePositionHolder)yyVals[-4+yyTop]).getPosition());
+                   ((ListNode)yyVals[-4+yyTop]).add(new TypedArgumentNode(((ISourcePositionHolder)yyVals[-2+yyTop]).getPosition(), (String) ((Token)yyVals[-2+yyTop]).getValue(), ((Node)yyVals[0+yyTop])));
+                   ((ListNode)yyVals[-4+yyTop]).setPosition(getPosition(((ListNode)yyVals[-4+yyTop])));
+		   yyVal = ((ListNode)yyVals[-4+yyTop]);
+    return yyVal;
+}
+public Object case401_line1525(Object yyVal, Object[] yyVals, int yyTop) {
+                   lexer.setState(LexState.EXPR_END);
+                   yyVal = ((Token)yyVals[0+yyTop]);
+		   ((ISourcePositionHolder)yyVal).setPosition(getPosition(((Token)yyVals[-1+yyTop])));
+    return yyVal;
+}
+public Object case397_line1512(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new GlobalVarNode(((Token)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case104_line672(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.appendToBlock(((Node)yyVals[-3+yyTop]), new UndefNode(getPosition(((Node)yyVals[-3+yyTop])), (String) ((Token)yyVals[0+yyTop]).getValue()));
+    return yyVal;
+}
+public Object case199_line800(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), ">=", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case422_line1584(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.gettable(((Token)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case396_line1504(Object yyVal, Object[] yyVals, int yyTop) {
+		   lexer.setStrTerm(((StrTerm)yyVals[-2+yyTop]));
+                   lexer.getConditionState().restart();
+	           lexer.getCmdArgumentState().restart();
+
+		   yyVal = support.newEvStrNode(getPosition(((Token)yyVals[-3+yyTop])), ((Node)yyVals[-1+yyTop]));
+    return yyVal;
+}
+public Object case376_line1400(Object yyVal, Object[] yyVals, int yyTop) {
+                  ISourcePosition position = getPosition(((Token)yyVals[-2+yyTop]));
+
+		  if (((Node)yyVals[-1+yyTop]) == null) {
+		      yyVal = new XStrNode(position, null);
+		  } else if (((Node)yyVals[-1+yyTop]) instanceof StrNode) {
+                      yyVal = new XStrNode(position, (ByteList) ((StrNode)yyVals[-1+yyTop]).getValue().clone());
+		  } else if (((Node)yyVals[-1+yyTop]) instanceof DStrNode) {
+                      yyVal = new DXStrNode(position, ((DStrNode)yyVals[-1+yyTop]));
+
+                      ((Node)yyVal).setPosition(position);
+                  } else {
+                      yyVal = new DXStrNode(position).add(((Node)yyVals[-1+yyTop]));
+		  }
+    return yyVal;
+}
+public Object case176_line720(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new OpAsgnNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop]), ((Node)yyVals[0+yyTop]), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[-1+yyTop]).getValue());
+    return yyVal;
+}
+public Object case185_line754(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "-", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case247_line960(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_concat(getPosition(((Node)yyVals[-8+yyTop])), support.newArrayNode(getPosition(((Node)yyVals[-8+yyTop])), ((Node)yyVals[-8+yyTop])).addAll(((ListNode)yyVals[-6+yyTop])).add(new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
+                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case317_line1203(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new BreakNode(((Token)yyVals[0+yyTop]).getPosition(), NilImplicitNode.NIL);
+    return yyVal;
+}
+public Object case36_line443(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newAndNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case183_line745(Object yyVal, Object[] yyVals, int yyTop) {
+		  support.checkExpression(((Node)yyVals[-2+yyTop]));
+		  support.checkExpression(((Node)yyVals[0+yyTop]));
+                  boolean isLiteral = ((Node)yyVals[-2+yyTop]) instanceof FixnumNode && ((Node)yyVals[0+yyTop]) instanceof FixnumNode;
+                  yyVal = new DotNode(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]), true, isLiteral);
+    return yyVal;
+}
+public Object case383_line1450(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.literal_concat(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case218_line858(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newArrayNode(getPosition(((Node)yyVals[-1+yyTop])), ((Node)yyVals[-1+yyTop]));
+    return yyVal;
+}
+public Object case192_line775(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (support.isLiteral(((Node)yyVals[0+yyTop]))) {
+		      yyVal = ((Node)yyVals[0+yyTop]);
+		  } else {
+                      yyVal = support.getOperatorCallNode(((Node)yyVals[0+yyTop]), "+@");
+		  }
+    return yyVal;
+}
+public Object case313_line1180(Object yyVal, Object[] yyVals, int yyTop) {
+                  /* TODO: We should use implicit nil for body, but problem (punt til later)*/
+                  Node body = ((Node)yyVals[-1+yyTop]); /*$5 == null ? NilImplicitNode.NIL : $5;*/
+
+                  /* NOEX_PRIVATE for toplevel */
+                  yyVal = new DefnNode(getPosition(((Token)yyVals[-5+yyTop])), new ArgumentNode(((Token)yyVals[-4+yyTop]).getPosition(), (String) ((Token)yyVals[-4+yyTop]).getValue()), ((ArgsNode)yyVals[-2+yyTop]), support.getCurrentScope(), body);
+                  support.popCurrentScope();
+                  support.setInDef(false);
+    return yyVal;
+}
+public Object case460_line1744(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((BlockArgNode)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case426_line1597(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = null;
+    return yyVal;
+}
+public Object case4_line303(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (((Node)yyVals[-1+yyTop]) instanceof BlockNode) {
+                      support.checkUselessStatements(((BlockNode)yyVals[-1+yyTop]));
+		  }
+                  yyVal = ((Node)yyVals[-1+yyTop]);
+    return yyVal;
+}
+public Object case17_line344(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (((Node)yyVals[-2+yyTop]) != null && ((Node)yyVals[-2+yyTop]) instanceof BeginNode) {
+                      yyVal = new WhileNode(getPosition(((Node)yyVals[-2+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])), ((BeginNode)yyVals[-2+yyTop]).getBodyNode(), false);
+                  } else {
+                      yyVal = new WhileNode(getPosition(((Node)yyVals[-2+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])), ((Node)yyVals[-2+yyTop]), true);
+                  }
+    return yyVal;
+}
+public Object case196_line791(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "&", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case305_line1142(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (support.isInDef() || support.isInSingle()) {
+                      yyerror("class definition in method body");
+                  }
 		  support.pushLocalScope();
-                  lexer.setState(LexState.EXPR_END); /* force for args */
     return yyVal;
 }
-					// line 1821 "DefaultRubyParser.y"
+public Object case219_line861(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((ListNode)yyVals[-1+yyTop]);
+    return yyVal;
+}
+public Object case229_line893(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newArrayNode(getPosition(((Node)yyVals[0+yyTop])), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case87_line616(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (support.isInDef() || support.isInSingle()) {
+		      yyerror("dynamic constant assignment");
+		  }
+			
+		  ISourcePosition position = getPosition(((Node)yyVals[-2+yyTop]));
+
+                  yyVal = new ConstDeclNode(position, null, support.new_colon2(position, ((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue()), NilImplicitNode.NIL);
+    return yyVal;
+}
+public Object case417_line1567(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new Token("self", Tokens.kSELF, ((Token)yyVals[0+yyTop]).getPosition());
+    return yyVal;
+}
+public Object case406_line1535(Object yyVal, Object[] yyVals, int yyTop) {
+                   lexer.setState(LexState.EXPR_END);
+
+                   /* DStrNode: :"some text #{some expression}"*/
+                   /* StrNode: :"some text"*/
+                   /* EvStrNode :"#{some expression}"*/
+                   if (((Node)yyVals[-1+yyTop]) == null) yyerror("empty symbol literal");
+
+                   if (((Node)yyVals[-1+yyTop]) instanceof DStrNode) {
+                       yyVal = new DSymbolNode(getPosition(((Token)yyVals[-2+yyTop])), ((DStrNode)yyVals[-1+yyTop]));
+                   } else {
+                       yyVal = new DSymbolNode(getPosition(((Token)yyVals[-2+yyTop])));
+                       ((DSymbolNode)yyVal).add(((Node)yyVals[-1+yyTop]));
+                   }
+    return yyVal;
+}
+public Object case231_line899(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_concat(getPosition(((ListNode)yyVals[-4+yyTop])), ((ListNode)yyVals[-4+yyTop]), ((Node)yyVals[-1+yyTop]));
+                  yyVal = support.arg_blk_pass(((Node)yyVal), ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case86_line613(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case347_line1298(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_call(((Node)yyVals[-2+yyTop]), ((Token)yyVals[0+yyTop]), null, null);
+    return yyVal;
+}
+public Object case68_line543(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new MultipleAsgnNode(getPosition(((Token)yyVals[-1+yyTop])), null, ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case48_line476(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
+    return yyVal;
+}
+public Object case310_line1166(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (support.isInDef() || support.isInSingle()) { 
+                      yyerror("module definition in method body");
+                  }
+		  support.pushLocalScope();
+    return yyVal;
+}
+public Object case261_line1004(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((ListNode)yyVals[-2+yyTop]).add(((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case409_line1555(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.negateInteger(((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case393_line1490(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = lexer.getStrTerm();
+		   lexer.setStrTerm(null);
+		   lexer.setState(LexState.EXPR_BEG);
+    return yyVal;
+}
+public Object case392_line1487(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = ((Node)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case232_line903(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newArrayNode(getPosition(((ListNode)yyVals[-1+yyTop])), new HashNode(getPosition(), ((ListNode)yyVals[-1+yyTop])));
+                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case77_line572(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.attrset(((Node)yyVals[-2+yyTop]), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case10_line323(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new AliasNode(getPosition(((Token)yyVals[-3+yyTop])), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case442_line1654(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyerror("formal argument cannot be a instance variable");
+    return yyVal;
+}
+public Object case351_line1311(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new IterNode(getPosition(((Token)yyVals[-4+yyTop])), ((Node)yyVals[-2+yyTop]), support.getCurrentScope(), ((Node)yyVals[-1+yyTop]));
+                  support.popCurrentScope();
+    return yyVal;
+}
+public Object case13_line332(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyerror("can't make alias for the number variables");
+    return yyVal;
+}
+public Object case311_line1171(Object yyVal, Object[] yyVals, int yyTop) {
+                  Node body = ((Node)yyVals[-1+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[-1+yyTop]);
+
+                  yyVal = new ModuleNode(getPosition(((Token)yyVals[-4+yyTop])), ((Colon3Node)yyVals[-3+yyTop]), support.getCurrentScope(), body);
+                  support.popCurrentScope();
+    return yyVal;
+}
+public Object case239_line929(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_blk_pass(support.newArrayNode(getPosition(((Node)yyVals[-2+yyTop])), ((Node)yyVals[-2+yyTop])), ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case312_line1177(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.setInDef(true);
+		  support.pushLocalScope();
+    return yyVal;
+}
+public Object case54_line498(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.new_call(((Node)yyVals[-3+yyTop]), ((Token)yyVals[-1+yyTop]), ((Node)yyVals[0+yyTop]), null);
+    return yyVal;
+}
+public Object case204_line815(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new NotNode(getPosition(((Node)yyVals[-2+yyTop])), support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "==", ((Node)yyVals[0+yyTop]), getPosition()));
+    return yyVal;
+}
+public Object case293_line1105(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.getConditionState().begin();
+    return yyVal;
+}
+public Object case387_line1467(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = ((ListNode)yyVals[-2+yyTop]).add(((Node)yyVals[-1+yyTop]));
+    return yyVal;
+}
+public Object case99_line660(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.setState(LexState.EXPR_END);
+                  yyVal = yyVals[0+yyTop];
+    return yyVal;
+}
+public Object case260_line1001(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newArrayNode(getPosition2(((Node)yyVals[0+yyTop])), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case450_line1696(Object yyVal, Object[] yyVals, int yyTop) {
+                   String identifier = (String) ((Token)yyVals[-2+yyTop]).getValue();
+
+                   if (support.getCurrentScope().getLocalScope().isDefined(identifier) >= 0) {
+                       yyerror("duplicate optional argument name");
+                   }
+		   support.getCurrentScope().getLocalScope().addVariable(identifier);
+                   yyVal = support.assignable(((Token)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case399_line1518(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new ClassVarNode(((Token)yyVals[0+yyTop]).getPosition(), (String) ((Token)yyVals[0+yyTop]).getValue());
+    return yyVal;
+}
+public Object case350_line1309(Object yyVal, Object[] yyVals, int yyTop) {
+                  support.pushBlockScope();
+    return yyVal;
+}
+public Object case304_line1139(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new ForNode(getPosition(((Token)yyVals[-8+yyTop])), ((Node)yyVals[-7+yyTop]), ((Node)yyVals[-1+yyTop]), ((Node)yyVals[-4+yyTop]));
+    return yyVal;
+}
+public Object case441_line1651(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyerror("formal argument cannot be a constant");
+    return yyVal;
+}
+public Object case388_line1472(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new StrNode(((Token)yyVals[0+yyTop]).getPosition(), ByteList.create(""));
+    return yyVal;
+}
+public Object case360_line1337(Object yyVal, Object[] yyVals, int yyTop) {
+                  Node node;
+                  if (((Node)yyVals[-3+yyTop]) != null) {
+                     node = support.appendToBlock(support.node_assign(((Node)yyVals[-3+yyTop]), new GlobalVarNode(getPosition(((Token)yyVals[-5+yyTop])), "$!")), ((Node)yyVals[-1+yyTop]));
+                     if(((Node)yyVals[-1+yyTop]) != null) {
+                        node.setPosition(support.unwrapNewlineNode(((Node)yyVals[-1+yyTop])).getPosition());
+                     }
+		  } else {
+		     node = ((Node)yyVals[-1+yyTop]);
+                  }
+                  Node body = node == null ? NilImplicitNode.NIL : node;
+                  yyVal = new RescueBodyNode(getPosition(((Token)yyVals[-5+yyTop])), ((Node)yyVals[-4+yyTop]), body, ((RescueBodyNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case38_line449(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new NotNode(getPosition(((Token)yyVals[-1+yyTop])), support.getConditionNode(((Node)yyVals[0+yyTop])));
+    return yyVal;
+}
+public Object case75_line566(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.aryset(((Node)yyVals[-3+yyTop]), ((Node)yyVals[-1+yyTop]));
+    return yyVal;
+}
+public Object case249_line967(Object yyVal, Object[] yyVals, int yyTop) {
+    return yyVal;
+}
+public Object case211_line836(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.newAndNode(getPosition(((Token)yyVals[-1+yyTop])), ((Node)yyVals[-2+yyTop]), ((Node)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case386_line1464(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = new ArrayNode(getPosition());
+    return yyVal;
+}
+public Object case280_line1053(Object yyVal, Object[] yyVals, int yyTop) {
+                  if (((Node)yyVals[-3+yyTop]) instanceof SelfNode) {
+                      yyVal = support.new_fcall(new Token("[]", getPosition(((Node)yyVals[-3+yyTop]))), ((Node)yyVals[-1+yyTop]), null);
+                  } else {
+                      yyVal = support.new_aref(((Node)yyVals[-3+yyTop]), new Token("[]", getPosition(((Node)yyVals[-3+yyTop]))), ((Node)yyVals[-1+yyTop]));
+                  }
+    return yyVal;
+}
+public Object case251_line972(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.getCmdArgumentState().reset(((Long)yyVals[-1+yyTop]).longValue());
+                  yyVal = ((Node)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case319_line1209(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new RedoNode(((Token)yyVals[0+yyTop]).getPosition());
+    return yyVal;
+}
+public Object case202_line809(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.getOperatorCallNode(((Node)yyVals[-2+yyTop]), "==", ((Node)yyVals[0+yyTop]), getPosition());
+    return yyVal;
+}
+public Object case256_line986(Object yyVal, Object[] yyVals, int yyTop) {
+                  warnings.warn(ID.ARGUMENT_EXTRA_SPACE, getPosition(((Token)yyVals[-3+yyTop])), "don't put space before argument parentheses");
+		  yyVal = ((Node)yyVals[-2+yyTop]);
+    return yyVal;
+}
+public Object case258_line996(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = ((BlockPassNode)yyVals[0+yyTop]);
+    return yyVal;
+}
+public Object case180_line732(Object yyVal, Object[] yyVals, int yyTop) {
+		  yyerror("constant re-assignment");
+    return yyVal;
+}
+public Object case241_line936(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = support.arg_concat(getPosition(((Node)yyVals[-6+yyTop])), support.newArrayNode(getPosition(((Node)yyVals[-6+yyTop])), ((Node)yyVals[-6+yyTop])).addAll(new HashNode(getPosition(), ((ListNode)yyVals[-4+yyTop]))), ((Node)yyVals[-1+yyTop]));
+                  yyVal = support.arg_blk_pass((Node)yyVal, ((BlockPassNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case490_line1810(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyerrok();
+    return yyVal;
+}
+public Object case438_line1640(Object yyVal, Object[] yyVals, int yyTop) {
+                   yyVal = support.new_args(getPosition(((RestArgNode)yyVals[-1+yyTop])), null, null, ((RestArgNode)yyVals[-1+yyTop]), null, ((BlockArgNode)yyVals[0+yyTop]));
+    return yyVal;
+}
+public Object case283_line1072(Object yyVal, Object[] yyVals, int yyTop) {
+		  yyVal = new ReturnNode(((Token)yyVals[0+yyTop]).getPosition(), NilImplicitNode.NIL);
+    return yyVal;
+}
+public Object case274_line1029(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new BeginNode(getPosition(((Token)yyVals[-2+yyTop])), ((Node)yyVals[-1+yyTop]) == null ? NilImplicitNode.NIL : ((Node)yyVals[-1+yyTop]));
+    return yyVal;
+}
+public Object case282_line1069(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new HashNode(getPosition(((Token)yyVals[-2+yyTop])), ((ListNode)yyVals[-1+yyTop]));
+    return yyVal;
+}
+public Object case275_line1032(Object yyVal, Object[] yyVals, int yyTop) {
+                  lexer.setState(LexState.EXPR_ENDARG); 
+    return yyVal;
+}
+public Object case390_line1479(Object yyVal, Object[] yyVals, int yyTop) {
+		   yyVal = null;
+    return yyVal;
+}
+public Object case377_line1417(Object yyVal, Object[] yyVals, int yyTop) {
+		  int options = ((RegexpNode)yyVals[0+yyTop]).getOptions();
+		  Node node = ((Node)yyVals[-1+yyTop]);
+
+		  if (node == null) {
+                      yyVal = new RegexpNode(getPosition(((Token)yyVals[-2+yyTop])), ByteList.create(""), options & ~ReOptions.RE_OPTION_ONCE);
+		  } else if (node instanceof StrNode) {
+                      yyVal = new RegexpNode(((Node)yyVals[-1+yyTop]).getPosition(), (ByteList) ((StrNode) node).getValue().clone(), options & ~ReOptions.RE_OPTION_ONCE);
+		  } else if (node instanceof DStrNode) {
+                      yyVal = new DRegexpNode(getPosition(((Token)yyVals[-2+yyTop])), (DStrNode) node, options, (options & ReOptions.RE_OPTION_ONCE) != 0);
+		  } else {
+		      yyVal = new DRegexpNode(getPosition(((Token)yyVals[-2+yyTop])), options, (options & ReOptions.RE_OPTION_ONCE) != 0).add(node);
+                  }
+    return yyVal;
+}
+public Object case27_line411(Object yyVal, Object[] yyVals, int yyTop) {
+                  yyVal = new OpAsgnNode(getPosition(((Node)yyVals[-4+yyTop])), ((Node)yyVals[-4+yyTop]), ((Node)yyVals[0+yyTop]), (String) ((Token)yyVals[-2+yyTop]).getValue(), (String) ((Token)yyVals[-1+yyTop]).getValue());
+    return yyVal;
+}
+					// line 1829 "DefaultRubyParser.y"
 
     /** The parse method use an lexer stream and parse it to an AST node 
      * structure
@@ -3868,7 +3876,19 @@ public Object case315_line1187(Object yyVal, Object[] yyVals, int yyTop) {
         lexer.setSource(source);
         lexer.setEncoding(configuration.getKCode().getEncoding());
         try {
-            Object debugger = configuration.isDebug() ? new jay.yydebug.yyDebugAdapter() : null;
+            Object debugger = null;
+            if (configuration.isDebug()) {
+                try {
+                    Class yyDebugAdapterClass = Class.forName("jay.yydebug.yyDebugAdapter");
+                    debugger = yyDebugAdapterClass.newInstance();
+                } catch (IllegalAccessException iae) {
+                    // ignore, no debugger present
+                } catch (InstantiationException ie) {
+                    // ignore, no debugger present
+                } catch (ClassNotFoundException cnfe) {
+                    // ignore, no debugger present
+                }
+            }
 	    //yyparse(lexer, new jay.yydebug.yyAnim("JRuby", 9));
             yyparse(lexer, debugger);
         } catch (IOException e) {
@@ -3901,4 +3921,4 @@ public Object case315_line1187(Object yyVal, Object[] yyVals, int yyTop) {
         return lexer.getPosition();
     }
 }
-					// line 7695 "-"
+					// line 7715 "-"

@@ -22,48 +22,6 @@ class TestIO < Test::Unit::TestCase
     File.unlink @file3 rescue nil
   end
 
-  def test_erroneous_io_usage
-    assert_raises(ArgumentError) { IO.new }
-    # commented out until JRUBY-1048 is completed
-    #assert_raises(StandardError) { IO.new(123) }
-    assert_raises(TypeError) { IO.new "FROGGER" }
-    assert_raises(TypeError) { IO.foreach 3 }
-  end
-
-  def test_gets_delimiting
-    f = File.new(@file3, "w")
-    f.print("A\n\n\nB\n")
-    f.close
-    f = File.new(@file3, "r")
-    f.gets("\n\n")
-    b = f.gets("\n\n")
-    f.gets("\n\n")
-    f.close
-    assert(b == "\nB\n", "gets of non-paragraph \"\\n\\n\" failed")
-  end
-
-  def test_two_ios_with_same_filenos
-    # Two ios with same fileno, but different objects.
-    f = File.new(@file, "w")
-    @to_close << f
-    f.puts("heh")
-    g = IO.new(f.fileno)
-    assert_equal(f.fileno, g.fileno)
-    assert_raises(IOError) { g.gets }
-    g.close
-    assert_raises(IOError) { g.puts }
-
-    f = File.new(@file, "r")
-    @to_close << f
-    g = IO.new(f.fileno)
-    assert_equal(f.fileno, g.fileno)
-    assert_raises(IOError) { g.puts }
-    # If g closes then g knows that it was once a valid descriptor.
-    # So it throws an IOError.
-    g.close
-    assert_raises(IOError) { g.gets }
-  end
-
   def test_puts_on_a_recursive_array
     # Puts a recursive array
     x = []
@@ -142,17 +100,6 @@ class TestIO < Test::Unit::TestCase
     f.close
   end
 
-  def test_seek
-    ensure_files @file
-    f = File.new(@file)
-    @to_close << f
-    assert_raises(Errno::EINVAL) { f.seek(-1) }
-    # Advance one + single arg seek
-    f.seek(1)
-    assert_equal(f.pos, 1)
-    f.close
-  end
-
   def test_empty_write_does_not_complain
     # empty write...writes nothing and does not complain
     f = File.new(@file, "w")
@@ -185,20 +132,6 @@ class TestIO < Test::Unit::TestCase
     
     # reopen of a filename after a close should succeed (JRUBY-1885)
     assert_nothing_raised { file.reopen(@file) }
-  end
-
-  def test_file_puts_gets_readline
-    f = File.open(@file, "w")
-    @to_close << f
-    f.puts("line1");
-    f.puts("line2");
-    f.puts("line3");
-    f.close
-
-    f = File.open(@file)
-    assert_equal(f.gets(), $_)
-    assert_equal(f.readline(), $_)
-    f.close
   end
 
   def test_file_read
@@ -254,27 +187,29 @@ class TestIO < Test::Unit::TestCase
     assert_raises(Errno::EBADF) { f.close }
   end
 
-  def test_sysopen
-    ensure_files @file
+  unless WINDOWS # Windows doesn't take kindly to perm mode tests
+    def test_sysopen
+      ensure_files @file
 
-    fno = IO::sysopen(@file, "r", 0124) # not creating, mode is ignored
-    assert_instance_of(Fixnum, fno)
-    assert_raises(Errno::EINVAL) { IO.open(fno, "w") } # not writable
-    IO.open(fno, "r") do |io|
-      assert_equal(fno, io.fileno)
-      assert(!io.closed?)
-    end
-    assert_raises(Errno::EBADF) { IO.open(fno, "r") } # fd is closed
-    File.open(@file) do |f|
-      mode = (f.stat.mode & 0777) # only comparing lower 9 bits
-      assert(mode > 0124)
-    end
+      fno = IO::sysopen(@file, "r", 0124) # not creating, mode is ignored
+      assert_instance_of(Fixnum, fno)
+      assert_raises(Errno::EINVAL) { IO.open(fno, "w") } # not writable
+      IO.open(fno, "r") do |io|
+        assert_equal(fno, io.fileno)
+        assert(!io.closed?)
+      end
+      assert_raises(Errno::EBADF) { IO.open(fno, "r") } # fd is closed
+      File.open(@file) do |f|
+        mode = (f.stat.mode & 0777) # only comparing lower 9 bits
+        assert(mode > 0124)
+      end
 
-    File.delete(@file)
-    fno = IO::sysopen(@file, "w", 0611) # creating, mode is enforced
-    File.open(@file) do |f|
-      mode = (f.stat.mode & 0777)
-      assert_equal(0611, mode)
+      File.delete(@file)
+      fno = IO::sysopen(@file, "w", 0611) # creating, mode is enforced
+      File.open(@file) do |f|
+        mode = (f.stat.mode & 0777)
+        assert_equal(0611, mode)
+      end
     end
   end
 
@@ -505,7 +440,7 @@ class TestIO < Test::Unit::TestCase
                    "FNM_DOTMATCH", "FNM_NOESCAPE", "FNM_PATHNAME", "FNM_SYSCASE",
                    "LOCK_EX", "LOCK_NB", "LOCK_SH", "LOCK_UN", "NOCTTY", "NONBLOCK",
                    "RDONLY", "RDWR", "SEEK_CUR", "SEEK_END", "SEEK_SET", "SYNC", "TRUNC",
-                   "WRONLY"].each { |c| assert IO.constants.include?(c) }
+                   "WRONLY"].each { |c| assert(IO.constants.include?(c), "#{c} is not included") }
   end
   
   #JRUBY-3012
@@ -513,6 +448,17 @@ class TestIO < Test::Unit::TestCase
     quiet_script = File.dirname(__FILE__) + '/quiet.rb'
     result = `jruby #{quiet_script}`.chomp
     assert_equal("foo", result)
+  end
+
+  # JRUBY-4152
+  if $stdin.tty? # in Ant that might be false
+    def test_tty_leak
+      assert $stdin.tty?
+      10_000.times {
+        $stdin.tty?
+      }
+      assert $stdin.tty?
+    end
   end
 
   private

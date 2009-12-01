@@ -31,18 +31,25 @@
 package org.jruby;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.anno.JRubyClass;
 
+import org.jruby.compiler.impl.SkinnyMethodAdapter;
 import org.jruby.internal.runtime.methods.DynamicMethod;
 import org.jruby.internal.runtime.methods.JavaMethod;
+import org.jruby.java.MiniJava;
+import org.jruby.javasupport.JavaClass;
 import org.jruby.javasupport.util.RuntimeHelpers;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.CallSite;
@@ -56,7 +63,16 @@ import org.jruby.runtime.Visibility;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.runtime.marshal.MarshalStream;
 import org.jruby.runtime.marshal.UnmarshalStream;
+import org.jruby.util.CodegenUtils;
+import org.jruby.util.JRubyClassLoader;
+import static org.jruby.util.CodegenUtils.*;
+import org.jruby.util.JavaNameMangler;
 import org.jruby.util.collections.WeakHashSet;
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+
+import static org.objectweb.asm.Opcodes.*;
 
 /**
  *
@@ -115,12 +131,34 @@ public class RubyClass extends RubyModule {
                 try {
                     return (IRubyObject)cls.newInstance();
                 } catch (InstantiationException ie) {
-                    throw runtime.newTypeError("could not allocate " + cls + " with default constructor");
+                    throw runtime.newTypeError("could not allocate " + cls + " with default constructor:\n" + ie);
                 } catch (IllegalAccessException iae) {
-                    throw runtime.newSecurityError("could not allocate " + cls + " due to inaccessible default constructor");
+                    throw runtime.newSecurityError("could not allocate " + cls + " due to inaccessible default constructor:\n" + iae);
                 }
             }
         };
+    }
+
+    public void setRubyClassAllocator(final Class cls) {
+        try {
+            final Constructor constructor = cls.getConstructor(Ruby.class, RubyClass.class);
+            
+            this.allocator = new ObjectAllocator() {
+                public IRubyObject allocate(Ruby runtime, RubyClass klazz) {
+                    try {
+                        return (IRubyObject)constructor.newInstance(runtime, klazz);
+                    } catch (InvocationTargetException ite) {
+                        throw runtime.newTypeError("could not allocate " + cls + " with (Ruby, RubyClass) constructor:\n" + ite);
+                    } catch (InstantiationException ie) {
+                        throw runtime.newTypeError("could not allocate " + cls + " with (Ruby, RubyClass) constructor:\n" + ie);
+                    } catch (IllegalAccessException iae) {
+                        throw runtime.newSecurityError("could not allocate " + cls + " due to inaccessible (Ruby, RubyClass) constructor:\n" + iae);
+                    }
+                }
+            };
+        } catch (NoSuchMethodException nsme) {
+            throw new RuntimeException(nsme);
+        }
     }
 
     @JRubyMethod(name = "allocate")
@@ -160,9 +198,6 @@ public class RubyClass extends RubyModule {
         }
         public static final VariableAccessor DUMMY_ACCESSOR = new VariableAccessor(-1, -1);
     }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, VariableAccessor> variableAccessors = (Map<String, VariableAccessor>)Collections.EMPTY_MAP;
 
     public Map<String, VariableAccessor> getVariableAccessorsForRead() {
         return variableAccessors;
@@ -354,10 +389,9 @@ public class RubyClass extends RubyModule {
     @Override
     public RubyClass makeMetaClass(RubyClass superClass) {
         if (isSingleton()) { // could be pulled down to RubyClass in future
-            MetaClass klass = new MetaClass(runtime, superClass); // rb_class_boot
+            MetaClass klass = new MetaClass(runtime, superClass, this); // rb_class_boot
             setMetaClass(klass);
 
-            klass.setAttached(this);
             klass.setMetaClass(klass);
             klass.setSuperClass(getSuperClass().getRealClass().getMetaClass());
             
@@ -567,6 +601,49 @@ public class RubyClass extends RubyModule {
         }
         return method.call(context, self, this, name, arg0, arg1, arg2);
     }
+
+    private void dumpReifiedClass(String dumpDir, String javaPath, byte[] classBytes) {
+        if (dumpDir != null) {
+            if (dumpDir.equals("")) {
+                dumpDir = ".";
+            }
+            java.io.FileOutputStream classStream = null;
+            try {
+                java.io.File classFile = new java.io.File(dumpDir, javaPath + ".class");
+                classFile.getParentFile().mkdirs();
+                classStream = new java.io.FileOutputStream(classFile);
+                classStream.write(classBytes);
+            } catch (IOException io) {
+                getRuntime().getWarnings().warn("unable to dump class file: " + io.getMessage());
+            } finally {
+                if (classStream != null) {
+                    try {
+                        classStream.close();
+                    } catch (IOException ignored) {
+                    }
+                }
+            }
+        }
+    }
+
+    private void generateMethodAnnotations(Map<Class, Map<String, Object>> methodAnnos, SkinnyMethodAdapter m, List<Map<Class, Map<String, Object>>> parameterAnnos) {
+        if (methodAnnos != null && methodAnnos.size() != 0) {
+            for (Map.Entry<Class, Map<String, Object>> entry : methodAnnos.entrySet()) {
+                m.visitAnnotationWithFields(ci(entry.getKey()), true, entry.getValue());
+            }
+        }
+        if (parameterAnnos != null && parameterAnnos.size() != 0) {
+            for (int i = 0; i < parameterAnnos.size(); i++) {
+                Map<Class, Map<String, Object>> annos = parameterAnnos.get(i);
+                if (annos != null && annos.size() != 0) {
+                    for (Iterator<Map.Entry<Class, Map<String, Object>>> it = annos.entrySet().iterator(); it.hasNext();) {
+                        Map.Entry<Class, Map<String, Object>> entry = it.next();
+                        m.visitParameterAnnotationWithFields(i, ci(entry.getKey()), true, entry.getValue());
+                    }
+                }
+            }
+        }
+    }
     
     private boolean shouldCallMethodMissing(DynamicMethod method) {
         return method.isUndefined();
@@ -599,34 +676,59 @@ public class RubyClass extends RubyModule {
             super(implClass, visibility);
         }
         public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject[] args, Block block) {
-            RubyClass cls = (RubyClass)self;
-            IRubyObject obj = cls.allocate();
-            cls.baseCallSites[CS_IDX_INITIALIZE].call(context, self, obj, args, block);
-            return obj;
+            preBacktraceOnly(context, name);
+            try {
+                RubyClass cls = (RubyClass)self;
+                IRubyObject obj = cls.allocate();
+                cls.baseCallSites[CS_IDX_INITIALIZE].call(context, self, obj, args, block);
+                return obj;
+            } finally {
+                postBacktraceOnly(context);
+            }
         }
         public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, Block block) {
-            RubyClass cls = (RubyClass)self;
-            IRubyObject obj = cls.allocate();
-            cls.baseCallSites[CS_IDX_INITIALIZE].call(context, self, obj, block);
-            return obj;
+            preBacktraceOnly(context, name);
+            try {
+                RubyClass cls = (RubyClass)self;
+                IRubyObject obj = cls.allocate();
+                cls.baseCallSites[CS_IDX_INITIALIZE].call(context, self, obj, block);
+                return obj;
+            } finally {
+                postBacktraceOnly(context);
+            }
         }
         public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject arg0, Block block) {
-            RubyClass cls = (RubyClass)self;
-            IRubyObject obj = cls.allocate();
-            cls.baseCallSites[CS_IDX_INITIALIZE].call(context, self, obj, arg0, block);
-            return obj;
+            preBacktraceOnly(context, name);
+            try {
+                RubyClass cls = (RubyClass)self;
+                IRubyObject obj = cls.allocate();
+                cls.baseCallSites[CS_IDX_INITIALIZE].call(context, self, obj, arg0, block);
+                return obj;
+            } finally {
+                postBacktraceOnly(context);
+            }
         }
         public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject arg0, IRubyObject arg1, Block block) {
-            RubyClass cls = (RubyClass)self;
-            IRubyObject obj = cls.allocate();
-            cls.baseCallSites[CS_IDX_INITIALIZE].call(context, self, obj, arg0, arg1, block);
-            return obj;
+            preBacktraceOnly(context, name);
+            try {
+                RubyClass cls = (RubyClass)self;
+                IRubyObject obj = cls.allocate();
+                cls.baseCallSites[CS_IDX_INITIALIZE].call(context, self, obj, arg0, arg1, block);
+                return obj;
+            } finally {
+                postBacktraceOnly(context);
+            }
         }
         public IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, String name, IRubyObject arg0, IRubyObject arg1, IRubyObject arg2, Block block) {
-            RubyClass cls = (RubyClass)self;
-            IRubyObject obj = cls.allocate();
-            cls.baseCallSites[CS_IDX_INITIALIZE].call(context, self, obj, arg0, arg1, arg2, block);
-            return obj;
+            preBacktraceOnly(context, name);
+            try {
+                RubyClass cls = (RubyClass)self;
+                IRubyObject obj = cls.allocate();
+                cls.baseCallSites[CS_IDX_INITIALIZE].call(context, self, obj, arg0, arg1, arg2, block);
+                return obj;
+            } finally {
+                postBacktraceOnly(context);
+            }
         }
     }
 
@@ -786,7 +888,7 @@ public class RubyClass extends RubyModule {
      * global lock, which we would like to avoid.
      */
     @Override
-    protected void invalidateCacheDescendants() {
+    public void invalidateCacheDescendants() {
         super.invalidateCacheDescendants();
         // update all subclasses
         synchronized (runtime.getHierarchyLock()) {
@@ -840,7 +942,7 @@ public class RubyClass extends RubyModule {
     public IRubyObject superclass19(ThreadContext context) {
         RubyClass superClazz = superClass;
         if (superClazz == null) {
-            if (metaClass == runtime.getBasicObject()) return runtime.getNil();
+            if (metaClass == runtime.getBasicObject().getMetaClass()) return runtime.getNil();
             throw runtime.newTypeError("uninitialized class");
         }
 
@@ -913,6 +1015,241 @@ public class RubyClass extends RubyModule {
         }
     };
 
+    public synchronized void reify() {
+        reify(null);
+    }
+
+    /**
+     * Stand up a real Java class for the backing store of this object
+     * @param classDumpDir Directory to save reified java class
+     */
+    public synchronized void reify(String classDumpDir) {
+        Class reifiedParent = RubyObject.class;
+        String javaName = "ruby." + getBaseName();
+        String javaPath = "ruby/" + getBaseName();
+        JRubyClassLoader parentCL = runtime.getJRubyClassLoader();
+
+        if (superClass.reifiedClass != null) {
+            reifiedParent = superClass.reifiedClass;
+        }
+
+        List impl_interfaces = new ArrayList();
+        for (RubyModule p = getSuperClass(); p != null; p = p.getSuperClass()) {
+            if (p.isIncluded()) {
+                RubyModule mod = p.getNonIncludedClass();
+                if (mod.getInstanceVariable("@java_class") instanceof JavaClass) {
+                    JavaClass jc = (JavaClass) mod.getInstanceVariable("@java_class");
+                    if (((Class) jc.getValue()).isInterface()) {
+                        impl_interfaces.add(p((Class) jc.getValue()));
+                    }
+                }
+            }
+        }
+
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+        cw.visit(RubyInstanceConfig.JAVA_VERSION, ACC_PUBLIC + ACC_SUPER, javaPath, null, p(reifiedParent),
+                (String[]) impl_interfaces.toArray(new String[impl_interfaces.size()]));
+
+        if (classAnnotations != null && classAnnotations.size() != 0) {
+            for (Map.Entry<Class,Map<String,Object>> entry : classAnnotations.entrySet()) {
+                Class annoType = entry.getKey();
+                Map<String,Object> fields = entry.getValue();
+
+                AnnotationVisitor av = cw.visitAnnotation(ci(annoType), true);
+                CodegenUtils.visitAnnotationFields(av, entry.getValue());
+                av.visitEnd();
+            }
+        }
+
+        // fields to hold Ruby and RubyClass references
+        cw.visitField(ACC_STATIC | ACC_PRIVATE, "ruby", ci(Ruby.class), null, null);
+        cw.visitField(ACC_STATIC | ACC_PRIVATE, "rubyClass", ci(RubyClass.class), null, null);
+
+        // static initializing method
+        SkinnyMethodAdapter m = new SkinnyMethodAdapter(cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "clinit", sig(void.class, Ruby.class, RubyClass.class), null, null));
+        m.start();
+        m.aload(0);
+        m.putstatic(javaPath, "ruby", ci(Ruby.class));
+        m.aload(1);
+        m.putstatic(javaPath, "rubyClass", ci(RubyClass.class));
+        m.voidreturn();
+        m.end();
+
+        // standard constructor that accepts Ruby, RubyClass
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", sig(void.class, Ruby.class, RubyClass.class), null, null);
+        m = new SkinnyMethodAdapter(mv);
+        m.aload(0);
+        m.aload(1);
+        m.aload(2);
+        m.invokespecial(p(reifiedParent), "<init>", sig(void.class, Ruby.class, RubyClass.class));
+        m.voidreturn();
+        m.end();
+
+        // no-arg constructor using static references to Ruby and RubyClass
+        mv = cw.visitMethod(ACC_PUBLIC, "<init>", CodegenUtils.sig(void.class), null, null);
+        m = new SkinnyMethodAdapter(mv);
+        m.aload(0);
+        m.getstatic(javaPath, "ruby", ci(Ruby.class));
+        m.getstatic(javaPath, "rubyClass", ci(RubyClass.class));
+        m.invokespecial(p(reifiedParent), "<init>", sig(void.class, Ruby.class, RubyClass.class));
+        m.voidreturn();
+        m.end();
+
+        for (Map.Entry<String,DynamicMethod> methodEntry : getMethods().entrySet()) {
+            String methodName = methodEntry.getKey();
+            String javaMethodName = JavaNameMangler.mangleStringForCleanJavaIdentifier(methodName);
+            Map<Class,Map<String,Object>> methodAnnos = getMethodAnnotations().get(methodName);
+            List<Map<Class,Map<String,Object>>> parameterAnnos = getParameterAnnotations().get(methodName);
+            Class[] methodSignature = getMethodSignatures().get(methodName);
+
+            if (methodSignature == null) {
+                // non-signature signature with just IRubyObject
+                switch (methodEntry.getValue().getArity().getValue()) {
+                case 0:
+                    mv = cw.visitMethod(ACC_PUBLIC | ACC_VARARGS, javaMethodName, sig(IRubyObject.class), null, null);
+                    m = new SkinnyMethodAdapter(mv);
+                    generateMethodAnnotations(methodAnnos, m, parameterAnnos);
+
+                    m.aload(0);
+                    m.ldc(methodName);
+                    m.invokevirtual(javaPath, "callMethod", sig(IRubyObject.class, String.class));
+                    break;
+                default:
+                    mv = cw.visitMethod(ACC_PUBLIC | ACC_VARARGS, javaMethodName, sig(IRubyObject.class, IRubyObject[].class), null, null);
+                    m = new SkinnyMethodAdapter(mv);
+                    generateMethodAnnotations(methodAnnos, m, parameterAnnos);
+
+                    m.aload(0);
+                    m.ldc(methodName);
+                    m.aload(1);
+                    m.invokevirtual(javaPath, "callMethod", sig(IRubyObject.class, String.class, IRubyObject[].class));
+                }
+                m.areturn();
+            } else {
+                // generate a real method signature for the method, with to/from coercions
+
+                // indices for temp values
+                Class[] params = new Class[methodSignature.length - 1];
+                System.arraycopy(methodSignature, 1, params, 0, params.length);
+                int baseIndex = 1;
+                for (Class paramType : params) {
+                    if (paramType == double.class || paramType == long.class) {
+                        baseIndex += 2;
+                    } else {
+                        baseIndex += 1;
+                    }
+                }
+                int rubyIndex = baseIndex;
+
+                mv = cw.visitMethod(ACC_PUBLIC | ACC_VARARGS, javaMethodName, sig(methodSignature[0], params), null, null);
+                m = new SkinnyMethodAdapter(mv);
+                generateMethodAnnotations(methodAnnos, m, parameterAnnos);
+
+                m.getstatic(javaPath, "ruby", ci(Ruby.class));
+                m.astore(rubyIndex);
+
+                m.aload(0); // self
+                m.ldc(methodName); // method name
+                MiniJava.coerceArgumentsToRuby(m, params, rubyIndex);
+                m.invokevirtual(javaPath, "callMethod", sig(IRubyObject.class, String.class, IRubyObject[].class));
+
+                MiniJava.coerceResultAndReturn(m, methodSignature[0]);
+            }
+
+            m.end();
+        }
+
+        cw.visitEnd();
+        byte[] classBytes = cw.toByteArray();
+        dumpReifiedClass(classDumpDir, javaPath, classBytes);
+        Class result = parentCL.defineClass(javaName, classBytes);
+
+        try {
+            java.lang.reflect.Method clinit = result.getDeclaredMethod("clinit", Ruby.class, RubyClass.class);
+            clinit.invoke(null, runtime, this);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        setClassAllocator(result);
+        reifiedClass = result;
+    }
+
+    public Class getReifiedClass() {
+        return reifiedClass;
+    }
+
+    public Map<String, List<Map<Class, Map<String,Object>>>> getParameterAnnotations() {
+        if (parameterAnnotations == null) return Collections.EMPTY_MAP;
+        return parameterAnnotations;
+    }
+
+    public synchronized void addParameterAnnotation(String method, int i, Class annoClass, Map<String,Object> value) {
+        if (parameterAnnotations == null) parameterAnnotations = new Hashtable<String,List<Map<Class,Map<String,Object>>>>();
+        List<Map<Class,Map<String,Object>>> paramList = parameterAnnotations.get(method);
+        if (paramList == null) {
+            paramList = new ArrayList<Map<Class,Map<String,Object>>>(i + 1);
+            parameterAnnotations.put(method, paramList);
+        }
+        if (paramList.size() < i + 1) {
+            for (int j = paramList.size(); j < i + 1; j++) {
+                paramList.add(null);
+            }
+        }
+        if (annoClass != null && value != null) {
+            Map<Class, Map<String, Object>> annos = paramList.get(i);
+            if (annos == null) {
+                annos = new HashMap<Class, Map<String, Object>>();
+                paramList.set(i, annos);
+            }
+            annos.put(annoClass, value);
+        } else {
+            paramList.set(i, null);
+        }
+    }
+
+    public Map<String,Map<Class,Map<String,Object>>> getMethodAnnotations() {
+        if (methodAnnotations == null) return Collections.EMPTY_MAP;
+
+        return methodAnnotations;
+    }
+
+    public synchronized void addMethodAnnotation(String methodName, Class annotation, Map fields) {
+        if (methodAnnotations == null) methodAnnotations = new Hashtable<String,Map<Class,Map<String,Object>>>();
+
+        Map<Class,Map<String,Object>> annos = methodAnnotations.get(methodName);
+        if (annos == null) {
+            annos = new Hashtable<Class,Map<String,Object>>();
+            methodAnnotations.put(methodName, annos);
+        }
+
+        annos.put(annotation, fields);
+    }
+
+    public Map<String,Class[]> getMethodSignatures() {
+        if (methodSignatures == null) return Collections.EMPTY_MAP;
+
+        return methodSignatures;
+    }
+
+    public synchronized void addMethodSignature(String methodName, Class[] types) {
+        if (methodSignatures == null) methodSignatures = new Hashtable<String,Class[]>();
+
+        methodSignatures.put(methodName, types);
+    }
+
+    public Map<Class,Map<String,Object>> getClassAnnotations() {
+        if (classAnnotations == null) return Collections.EMPTY_MAP;
+
+        return classAnnotations;
+    }
+
+    public synchronized void addClassAnnotation(Class annotation, Map fields) {
+        if (classAnnotations == null) classAnnotations = new Hashtable<Class,Map<String,Object>>();
+
+        classAnnotations.put(annotation, fields);
+    }
+
     protected final Ruby runtime;
     private ObjectAllocator allocator; // the default allocator
     protected ObjectMarshal marshal;
@@ -929,4 +1266,17 @@ public class RubyClass extends RubyModule {
     }
 
     private CallSite[] extraCallSites;
+
+    private Class reifiedClass;
+
+    @SuppressWarnings("unchecked")
+    private Map<String, VariableAccessor> variableAccessors = (Map<String, VariableAccessor>)Collections.EMPTY_MAP;
+
+    private Map<String, List<Map<Class, Map<String,Object>>>> parameterAnnotations;
+
+    private Map<String, Map<Class, Map<String,Object>>> methodAnnotations;
+
+    private Map<String, Class[]> methodSignatures;
+
+    private Map<Class, Map<String,Object>> classAnnotations;
 }

@@ -135,3 +135,16 @@ class H1 < Hash
 end
 
 test_no_exception{ H1.new.clone }
+
+# JRUBY-2587
+class Foo
+  def to_ary
+    [[1,2],[3,4]]
+  end
+end
+
+test_equal({1=>2, 3=>4}, Hash[Foo.new])
+
+
+# JRUBY-3682
+test_equal({}.hash, {}.hash)

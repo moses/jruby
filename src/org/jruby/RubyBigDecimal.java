@@ -42,7 +42,6 @@ import org.jruby.anno.JRubyConstant;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
-import org.jruby.runtime.CallbackFactory;
 import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.Visibility;
@@ -111,8 +110,6 @@ public class RubyBigDecimal extends RubyNumeric {
     
     public static RubyClass createBigDecimal(Ruby runtime) {
         RubyClass result = runtime.defineClass("BigDecimal",runtime.getNumeric(), BIGDECIMAL_ALLOCATOR);
-
-        CallbackFactory callbackFactory = runtime.callbackFactory(RubyBigDecimal.class);
 
         runtime.getKernel().defineAnnotatedMethods(BigDecimalKernelMethods.class);
 
@@ -873,6 +870,7 @@ public class RubyBigDecimal extends RubyNumeric {
     }
 
     @JRubyMethod(name = "coerce", required = 1)
+    @Override
     public IRubyObject coerce(IRubyObject other) {
         IRubyObject obj;
         if(other instanceof RubyFloat) {
@@ -883,8 +881,16 @@ public class RubyBigDecimal extends RubyNumeric {
         return obj;
     }
 
+    @Override
     public double getDoubleValue() { return value.doubleValue(); }
+    
+    @Override
     public long getLongValue() { return value.longValue(); }
+
+    @Override
+    public BigInteger getBigIntegerValue() {
+        return value.toBigInteger();
+    }
 
     public RubyNumeric multiplyWith(ThreadContext context, RubyInteger value) { 
         return (RubyNumeric)op_mul(context, value);
@@ -1183,6 +1189,21 @@ public class RubyBigDecimal extends RubyNumeric {
         if (isZero()) {
             return RubyFloat.newFloat(getRuntime(),
                     zeroSign < 0 ? -0.0 : 0.0);
+        }
+        if (-value.scale() > RubyFloat.MAX_10_EXP) {
+            switch (value.signum()) {
+            case -1:
+                return RubyFloat.newFloat(getRuntime(), Double.NEGATIVE_INFINITY);
+            case 0:
+                return RubyFloat.newFloat(getRuntime(), 0);
+            case 1:
+                return RubyFloat.newFloat(getRuntime(), Double.POSITIVE_INFINITY);
+            default:
+                // eh?!
+            }
+        }
+        if (-value.scale() < RubyFloat.MIN_10_EXP) {
+            return RubyFloat.newFloat(getRuntime(), 0);
         }
         return RubyFloat.newFloat(getRuntime(), value.doubleValue());
     }

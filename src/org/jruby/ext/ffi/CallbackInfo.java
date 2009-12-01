@@ -52,6 +52,8 @@ public class CallbackInfo extends Type implements NativeParam {
     protected final Type[] parameterTypes;
     protected final Type returnType;
 
+    private volatile Object providerCallbackInfo;
+
     /**
      * Creates a CallbackInfo class for a ruby runtime
      *
@@ -67,6 +69,7 @@ public class CallbackInfo extends Type implements NativeParam {
         result.defineAnnotatedMethods(CallbackInfo.class);
         result.defineAnnotatedConstants(CallbackInfo.class);
 
+        module.fastGetClass("Type").fastSetConstant("Function", result);
         return result;
     }
     
@@ -151,6 +154,14 @@ public class CallbackInfo extends Type implements NativeParam {
         return parameterTypes;
     }
 
+    public final Object getProviderCallbackInfo() {
+        return providerCallbackInfo;
+    }
+
+    public final void setProviderCallbackInfo(Object info) {
+        this.providerCallbackInfo = info;
+    }
+
     @JRubyMethod(name = "to_s")
     public final IRubyObject to_s(ThreadContext context) {
         StringBuilder sb = new StringBuilder();
@@ -176,5 +187,15 @@ public class CallbackInfo extends Type implements NativeParam {
         }
         sb.append("] return=" + returnType.toString().toLowerCase() + "]");
         return sb.toString();
+    }
+
+    @JRubyMethod
+    public final IRubyObject result_type(ThreadContext context) {
+        return returnType;
+    }
+
+    @JRubyMethod
+    public final IRubyObject param_types(ThreadContext context) {
+        return RubyArray.newArray(context.getRuntime(), parameterTypes);
     }
 }

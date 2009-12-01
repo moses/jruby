@@ -29,17 +29,16 @@ package org.jruby.ext.socket;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
-
 import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-
 import java.nio.channels.ServerSocketChannel;
-
 import java.nio.channels.SocketChannel;
+import java.util.regex.Pattern;
+
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyFixnum;
@@ -54,9 +53,9 @@ import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.Visibility;
 import org.jruby.runtime.builtin.IRubyObject;
-import org.jruby.util.io.ModeFlags;
 import org.jruby.util.io.ChannelDescriptor;
 import org.jruby.util.io.InvalidValueException;
+import org.jruby.util.io.ModeFlags;
 
 /**
  * @author <a href="mailto:ola.bini@ki.se">Ola Bini</a>
@@ -64,10 +63,11 @@ import org.jruby.util.io.InvalidValueException;
 @JRubyClass(name="TCPServer", parent="TCPSocket")
 public class RubyTCPServer extends RubyTCPSocket {
     static void createTCPServer(Ruby runtime) {
-        RubyClass rb_cTCPServer = runtime.defineClass("TCPServer", runtime.fastGetClass("TCPSocket"), TCPSERVER_ALLOCATOR);
+        RubyClass rb_cTCPServer = runtime.defineClass(
+                "TCPServer", runtime.fastGetClass("TCPSocket"), TCPSERVER_ALLOCATOR);
 
         rb_cTCPServer.defineAnnotatedMethods(RubyTCPServer.class);
-        
+
         runtime.getObject().fastSetConstant("TCPserver",rb_cTCPServer);
     }
 
@@ -90,8 +90,8 @@ public class RubyTCPServer extends RubyTCPSocket {
         IRubyObject port = args.length > 1 ? args[1] : context.getRuntime().getNil();
 
         if(hostname.isNil()
-	   || ((hostname instanceof RubyString)
-	       && ((RubyString) hostname).isEmpty())) {
+                || ((hostname instanceof RubyString)
+                        && ((RubyString) hostname).isEmpty())) {
             hostname = context.getRuntime().newString("0.0.0.0");
         } else if (hostname instanceof RubyFixnum) {
             // numeric host, use it for port
@@ -113,20 +113,36 @@ public class RubyTCPServer extends RubyTCPSocket {
                 portInt = RubyNumeric.fix2int(portInteger);
 
                 if (portInt <= 0) {
-                    portInt = RubyNumeric.fix2int(RubySocket.getservbyname(context, context.getRuntime().getObject(), new IRubyObject[] {portString}));
+                    portInt = RubyNumeric.fix2int(RubySocket.getservbyname(
+                            context, context.getRuntime().getObject(), new IRubyObject[] {portString}));
                 }
             }
 
             socket_address = new InetSocketAddress(addr, portInt);
             ssc.socket().bind(socket_address);
-            initSocket(context.getRuntime(), new ChannelDescriptor(ssc, RubyIO.getNewFileno(), new ModeFlags(ModeFlags.RDWR), new FileDescriptor()));
+            initSocket(context.getRuntime(), new ChannelDescriptor(
+                    ssc, RubyIO.getNewFileno(), new ModeFlags(ModeFlags.RDWR), new FileDescriptor()));
         } catch (InvalidValueException ex) {
             throw context.getRuntime().newErrnoEINVALError();
         } catch(UnknownHostException e) {
             throw sockerr(context.getRuntime(), "initialize: name or service not known");
         } catch(BindException e) {
-            //            e.printStackTrace();
-            throw context.getRuntime().newErrnoEADDRINUSEError();
+            // e.printStackTrace();
+            String msg = e.getMessage();
+            if (msg == null) {
+                msg = "bind";
+            } else {
+                msg = "bind - " + msg;
+            }
+
+            // This is ugly, but what can we do, Java provides the same BindingException
+            // for both EADDRNOTAVAIL and EADDRINUSE, so we differentiate the errors
+            // based on BindException's message.
+            if(ADDR_NOT_AVAIL_PATTERN.matcher(msg).find()) {
+                throw context.getRuntime().newErrnoEADDRNOTAVAILError(msg);
+            } else {
+                throw context.getRuntime().newErrnoEADDRINUSEError(msg);
+            }
         } catch(IOException e) {
             throw sockerr(context.getRuntime(), "initialize: name or service not known");
         } catch (IllegalArgumentException iae) {
@@ -142,7 +158,7 @@ public class RubyTCPServer extends RubyTCPSocket {
     @JRubyMethod(name = "accept")
     public IRubyObject accept(ThreadContext context) {
         RubyTCPSocket socket = new RubyTCPSocket(context.getRuntime(), context.getRuntime().fastGetClass("TCPSocket"));
-        
+
         try {
             while (true) {
                 boolean ready = context.getThread().select(this, SelectionKey.OP_ACCEPT);
@@ -153,7 +169,7 @@ public class RubyTCPServer extends RubyTCPSocket {
                     try {
                         SocketChannel connected = ssc.accept();
                         connected.finishConnect();
-                        
+
                         //
                         // Force the client socket to be blocking
                         //
@@ -161,7 +177,7 @@ public class RubyTCPServer extends RubyTCPSocket {
                             connected.configureBlocking(false);
                             connected.configureBlocking(true);
                         }
-        
+
                         // otherwise one key has been selected (ours) so we get the channel and hand it off
                         socket.initSocket(context.getRuntime(), new ChannelDescriptor(connected, RubyIO.getNewFileno(), new ModeFlags(ModeFlags.RDWR), new FileDescriptor()));
                     } catch (InvalidValueException ex) {
@@ -239,13 +255,15 @@ public class RubyTCPServer extends RubyTCPSocket {
     @JRubyMethod(name = "open", rest = true, frame = true, meta = true)
     public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject[] args, Block block) {
         IRubyObject tcpServer = recv.callMethod(context, "new", args);
-        
+
         if (!block.isGiven()) return tcpServer;
-        
+
         try {
             return block.yield(context, tcpServer);
         } finally {
             tcpServer.callMethod(context, "close");
         }
     }
+
+    private final static Pattern ADDR_NOT_AVAIL_PATTERN = Pattern.compile("assign.*address");
 }

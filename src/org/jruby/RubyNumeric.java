@@ -45,6 +45,7 @@ import java.math.BigInteger;
 import org.jruby.anno.JRubyClass;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.exceptions.RaiseException;
+import org.jruby.javasupport.JavaUtil;
 import org.jruby.javasupport.util.RuntimeHelpers;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ObjectAllocator;
@@ -53,6 +54,7 @@ import org.jruby.runtime.Visibility;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.ByteList;
 import org.jruby.util.Convert;
+import org.jruby.util.Convert2;
 
 /**
  * Base class for all numerical types in ruby.
@@ -121,6 +123,10 @@ public class RubyNumeric extends RubyObject {
 
     public long getLongValue() {
         return 0;
+    }
+
+    public BigInteger getBigIntegerValue() {
+        return BigInteger.ZERO;
     }
     
     public static RubyNumeric newNumeric(Ruby runtime) {
@@ -316,33 +322,8 @@ public class RubyNumeric extends RubyObject {
      *          conversion failed.
      */
     public static RubyInteger str2inum(Ruby runtime, RubyString str, int base, boolean strict) {
-        if (base != 0 && (base < 2 || base > 36)) {
-            throw runtime.newArgumentError("illegal radix " + base);
-        }
-        ByteList bytes = str.getByteList();
-        try {
-            return runtime.newFixnum(Convert.byteListToLong(bytes, base, strict));
-        } catch (InvalidIntegerException e) {
-            return str2inumIIE(strict, runtime, str);
-        } catch (NumberTooLargeException e) {
-            return str2inumNTLE(strict, runtime, str, bytes, base);
-        }
-    }
-
-    private static RubyInteger str2inumIIE(boolean strict, Ruby runtime, RubyString str) throws RaiseException {
-        if (strict) {
-            throw runtime.newArgumentError("invalid value for Integer: " + str.callMethod(runtime.getCurrentContext(), "inspect").toString());
-        }
-        return RubyFixnum.zero(runtime);
-    }
-    
-    private static RubyInteger str2inumNTLE(boolean strict, Ruby runtime, RubyString str, ByteList bytes, int base) {
-        try {
-            BigInteger bi = Convert.byteListToBigInteger(bytes, base, strict);
-            return new RubyBignum(runtime, bi);
-        } catch (InvalidIntegerException e2) {
-            return str2inumIIE(strict, runtime, str);
-        }
+        ByteList s = str.getByteList();
+        return Convert2.byteListToInum(runtime, s, base, strict);
     }
 
     public static RubyFloat str2fnum(Ruby runtime, RubyString arg) {
@@ -737,12 +718,10 @@ public class RubyNumeric extends RubyObject {
         }
     }
 
-    @JRubyMethod(name = "step", frame = true, compat = CompatVersion.RUBY1_8)
     public IRubyObject step(ThreadContext context, IRubyObject arg0, Block block) {
         return step(context, arg0, RubyFixnum.one(context.getRuntime()), block);
     }
 
-    @JRubyMethod(name = "step", frame = true, compat = CompatVersion.RUBY1_8)
     public IRubyObject step(ThreadContext context, IRubyObject to, IRubyObject step, Block block) {
         Ruby runtime = context.getRuntime();
         if (this instanceof RubyFixnum && to instanceof RubyFixnum && step instanceof RubyFixnum) {
@@ -758,12 +737,12 @@ public class RubyNumeric extends RubyObject {
         return this;
     }
 
-    @JRubyMethod(name = "step", frame = true, compat = CompatVersion.RUBY1_9)
+    @JRubyMethod(name = "step", frame = true)
     public IRubyObject step19(ThreadContext context, IRubyObject arg0, Block block) {
         return block.isGiven() ? stepCommon19(context, arg0, RubyFixnum.one(context.getRuntime()), block) : enumeratorize(context.getRuntime(), this, "step", arg0);
     }
 
-    @JRubyMethod(name = "step", frame = true, compat = CompatVersion.RUBY1_9)
+    @JRubyMethod(name = "step", frame = true)
     public IRubyObject step19(ThreadContext context, IRubyObject to, IRubyObject step, Block block) {
         return block.isGiven() ? stepCommon19(context, to, step, block) : enumeratorize(context.getRuntime(), this, "step", new IRubyObject[] {to, step});
     }
@@ -939,6 +918,11 @@ public class RubyNumeric extends RubyObject {
         return this;
     }
 
+    @Override
+    public Object toJava(Class target) {
+        return JavaUtil.getNumericConverter(target).coerce(this, target);
+    }
+
     public static class InvalidIntegerException extends NumberFormatException {
         private static final long serialVersionUID = 55019452543252148L;
         
@@ -948,6 +932,7 @@ public class RubyNumeric extends RubyObject {
         public InvalidIntegerException(String message) {
             super(message);
         }
+        @Override
         public Throwable fillInStackTrace() {
             return this;
         }
@@ -961,6 +946,7 @@ public class RubyNumeric extends RubyObject {
         public NumberTooLargeException(String message) {
             super(message);
         }
+        @Override
         public Throwable fillInStackTrace() {
             return this;
         }

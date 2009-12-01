@@ -34,7 +34,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jruby.anno.JRubyMethod;
+import org.jruby.internal.runtime.methods.DynamicMethod;
 import org.jruby.javasupport.JavaObject;
+import org.jruby.javasupport.JavaUtil;
 import org.jruby.javasupport.util.RuntimeHelpers;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ClassIndex;
@@ -96,6 +98,7 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
     public static final int USER6_F = (1<<(FL_USHIFT+6));
     public static final int USER7_F = (1<<(FL_USHIFT+7));
 
+    public static final int COMPARE_BY_IDENTITY_F = (1<<(FL_USHIFT+8));
 
     /**
      *  A value that is used as a null sentinel in among other places
@@ -323,6 +326,14 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
         return RuntimeHelpers.invoke(context, this, name, args);
     }
 
+    public final IRubyObject callMethod(String name, IRubyObject... args) {
+        return RuntimeHelpers.invoke(getRuntime().getCurrentContext(), this, name, args);
+    }
+
+    public final IRubyObject callMethod(String name) {
+        return RuntimeHelpers.invoke(getRuntime().getCurrentContext(), this, name);
+    }
+
     /**
      * Will invoke a named method with the supplied arguments and
      * supplied block with functional invocation.
@@ -387,6 +398,9 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
      * @param taint should this object be tainted or not?
      */
     public void setTaint(boolean taint) {
+        // JRUBY-4113: callers should not call setTaint on immediate objects
+        if (isImmediate()) return;
+        
         if (taint) {
             flags |= TAINTED_F;
         } else {
@@ -512,10 +526,9 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
      * class.
      */
     public RubyClass makeMetaClass(RubyClass superClass) {
-        MetaClass klass = new MetaClass(getRuntime(), superClass); // rb_class_boot
+        MetaClass klass = new MetaClass(getRuntime(), superClass, this); // rb_class_boot
         setMetaClass(klass);
 
-        klass.setAttached(this);
         klass.setMetaClass(superClass.getRealClass().getMetaClass());
 
         superClass.addSubclass(klass);
@@ -586,7 +599,7 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
     public String asJavaString() {
         IRubyObject asString = checkStringType();
         if(!asString.isNil()) return ((RubyString)asString).asJavaString();
-        throw getRuntime().newTypeError(inspect().toString() + " is not a symbol");
+        throw getRuntime().newTypeError(inspect().toString() + " is not a string");
     }
 
     /** rb_obj_as_string
@@ -702,6 +715,25 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
         return conv instanceof RubyInteger ? conv : obj.getRuntime().getNil();
     }
 
+    /**
+     * @see IRubyObject.toJava
+     */
+    public Object toJava(Class target) {
+        if (dataGetStruct() instanceof JavaObject) {
+            // for interface impls
+
+            JavaObject innerWrapper = (JavaObject)dataGetStruct();
+
+            // ensure the object is associated with the wrapper we found it in,
+            // so that if it comes back we don't re-wrap it
+            getRuntime().getJavaSupport().getObjectProxyCache().put(innerWrapper.getValue(), this);
+
+            return innerWrapper.getValue();
+        } else {
+            return JavaUtil.coerceOtherToType(getRuntime().getCurrentContext(), this, target);
+        }
+    }
+
     public IRubyObject dup() {
         if (isImmediate()) throw getRuntime().newTypeError("can't dup " + getMetaClass().getName());
 
@@ -772,31 +804,31 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
      * @return either a real class, or a clone of the current singleton class
      */
     protected RubyClass getSingletonClassClone() {
-       RubyClass klass = getMetaClass();
+        RubyClass klass = getMetaClass();
 
-       if (!klass.isSingleton()) return klass;
+        if (!klass.isSingleton()) {
+            return klass;
+        }
 
-       MetaClass clone = new MetaClass(getRuntime());
-       clone.flags = flags;
+        MetaClass clone = new MetaClass(getRuntime(), klass.getSuperClass(), ((MetaClass) klass).getAttached());
+        clone.flags = flags;
 
-       if (this instanceof RubyClass) {
-           clone.setMetaClass(clone);
-       } else {
-           clone.setMetaClass(klass.getSingletonClassClone());
-       }
+        if (this instanceof RubyClass) {
+            clone.setMetaClass(clone);
+        } else {
+            clone.setMetaClass(klass.getSingletonClassClone());
+        }
 
-       clone.setSuperClass(klass.getSuperClass());
+        if (klass.hasVariables()) {
+            clone.syncVariables(klass.getVariableList());
+        }
+        clone.syncConstants(klass);
 
-       if (klass.hasVariables()) clone.syncVariables(klass.getVariableList());
-       clone.syncConstants(klass);
+        klass.cloneMethods(clone);
 
-       klass.cloneMethods(clone);
+        ((MetaClass) clone.getMetaClass()).setAttached(clone);
 
-       ((MetaClass)clone.getMetaClass()).setAttached(clone);
-
-       ((MetaClass)clone).setAttached(((MetaClass)klass).getAttached());
-
-       return clone;
+        return clone;
     }
 
     /**
@@ -841,14 +873,26 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
         return fastGetInternalVariable("__wrap_struct__");
     }
 
+    // Equivalent of Data_Get_Struct
+    // This will first check that the object in question is actually a T_DATA equivalent.
+    public synchronized Object dataGetStructChecked() {
+        TypeConverter.checkData(this);
+        return this.fastGetInternalVariable("__wrap_struct__");
+    }
+
     /** rb_obj_id
      *
      * Return the internal id of an object.
-     *
-     * FIXME: Should this be renamed to match its ruby name?
      */
-    public synchronized IRubyObject id() {
-        return getRuntime().newFixnum(getRuntime().getObjectSpace().idOf(this));
+    public IRubyObject id() {
+        Ruby runtime = getRuntime();
+        if (runtime.isObjectSpaceEnabled()) {
+            synchronized (this) {
+                return runtime.newFixnum(runtime.getObjectSpace().idOf(this));
+            }
+        } else {
+            return runtime.newFixnum(System.identityHashCode(this));
+        }
     }
 
     /** rb_obj_inspect
@@ -917,7 +961,7 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
 
     @JRubyMethod(name = "!=", required = 1, compat = CompatVersion.RUBY1_9)
     public IRubyObject op_not_equal(ThreadContext context, IRubyObject other) {
-        return context.getRuntime().newBoolean(!equalInternal(context, this, other));
+        return context.getRuntime().newBoolean(!op_equal(context, other).isTrue());
     }
 
     public int compareTo(IRubyObject other) {
@@ -942,7 +986,7 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
      */
     @JRubyMethod(name = "equal?", required = 1, compat = CompatVersion.RUBY1_9)
     public IRubyObject op_eqq(ThreadContext context, IRubyObject other) {
-        return context.getRuntime().newBoolean(equalInternal(context, this, other));
+        return op_equal(context, other);
     }
 
     /**
@@ -1055,7 +1099,7 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
         for (Map.Entry<String, RubyClass.VariableAccessor> entry : ivarAccessors.entrySet()) {
             Object value = entry.getValue().get(this);
             if (value == null) continue;
-            list.add(new VariableEntry<Object>(entry.getKey(), (IRubyObject)value));
+            list.add(new VariableEntry<Object>(entry.getKey(), value));
         }
         return list;
     }
@@ -1373,6 +1417,20 @@ public class RubyBasicObject implements Cloneable, IRubyObject, Serializable, Co
 
     public int getNativeTypeIndex() {
         throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    /**
+     * A method to determine whether the method named by methodName is a builtin
+     * method.  This means a method with a JRubyMethod annotation written in
+     * Java.
+     *
+     * @param methodName to look for.
+     * @return true if so
+     */
+    public boolean isBuiltin(String methodName) {
+        DynamicMethod method = getMetaClass().searchMethodInner(methodName);
+
+        return method != null && method.isBuiltin();
     }
 
     /**

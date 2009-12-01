@@ -45,7 +45,7 @@ test_equal(500, t.tv_usec)
 
 # test comparison with nil
 t = Time.now
-test_equal(nil, t == nil)
+test_equal(nil, t == nil) # not with 1.9
 
 # Time.utc can accept float values (by turning them into ints)
 test_no_exception { Time::utc(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0) }
@@ -76,16 +76,24 @@ stest = {
   '%A' => 'Saturday',
   '%b' => 'Jan',
   '%B' => 'January',
+  '%C' => '20',
   '%e' => ' 1',
   '%d' => '01',
+  '%G' => '1999',
+  '%h' => 'Jan',
   '%H' => '14',
   '%I' => '02',
   '%j' => '001',
   '%m' => '01',
+  '%n' => "\n",
   '%M' => '58',
   '%p' => 'PM',
+  '%P' => 'pm',
   '%S' => '42',
+  '%t' => "\t",
+  '%u' => '6',
   '%U' => '00',
+  '%V' => '52',
   '%W' => '00',
   '%w' => '6',
   '%y' =>  '00',
@@ -125,6 +133,13 @@ test_equal 2038, Time.utc(38).year
 test_equal 2038, Time.utc(138).year
 test_equal 1902, Time.utc(1902).year
 
+# JRUBY-3815
+test_equal("2000年01月01日(Sat) 14時58分42秒", t.strftime("%Y年%m月%d日(%a) %H時%M分%S秒"))
+# JRUBY-3550
+test_equal("Thursday csütörtök", Time.mktime(2009,1,1,0,0).strftime("%A csütörtök"))
+
+test_exception {Time.mktime(2009,1,1,0,0).strftime(12345)}
+
 =begin Disabled, see http://jira.codehaus.org/browse/JRUBY-3079
 old_tz = ENV['TZ']
 begin
@@ -136,3 +151,12 @@ ensure
   ENV['TZ'] = old_tz
 end
 =end
+
+# JRUBY-3873
+test_equal "12:00AM%", Time.utc(2007,01,01,0,0).strftime("%I:%M%p%")
+
+test_equal ' 0', Time.utc(2000,1,1).strftime("%k")
+test_equal '7', Time.utc(2000,1,2).strftime("%u") # Sunday
+test_equal '0', Time.utc(2000,1,2).strftime("%w") # Sunday
+test_equal '53', Time.utc(2009,12,31).strftime("%V")
+test_equal '0', Time.utc(1970,1,1).strftime("%s")

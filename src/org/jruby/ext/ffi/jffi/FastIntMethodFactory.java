@@ -2,14 +2,12 @@
 package org.jruby.ext.ffi.jffi;
 
 import com.kenai.jffi.Function;
+import org.jruby.RubyBoolean;
 import org.jruby.RubyModule;
 import org.jruby.RubyNumeric;
-import org.jruby.RubyString;
-import org.jruby.ext.ffi.BasePointer;
 import org.jruby.ext.ffi.DirectMemoryIO;
 import org.jruby.ext.ffi.NativeParam;
 import org.jruby.ext.ffi.NativeType;
-import org.jruby.ext.ffi.NullMemoryIO;
 import org.jruby.ext.ffi.Platform;
 import org.jruby.ext.ffi.Pointer;
 import org.jruby.ext.ffi.Struct;
@@ -19,7 +17,7 @@ import org.jruby.internal.runtime.methods.DynamicMethod;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 
-public class FastIntMethodFactory {
+public class FastIntMethodFactory extends MethodFactory {
     private static final class SingletonHolder {
         private static final FastIntMethodFactory INSTANCE = new FastIntMethodFactory();
     }
@@ -40,12 +38,13 @@ public class FastIntMethodFactory {
         if (type instanceof Type.Builtin) {
             switch (type.getNativeType()) {
                 case VOID:
-                case INT8:
-                case UINT8:
-                case INT16:
-                case UINT16:
-                case INT32:
-                case UINT32:
+                case CHAR:
+                case UCHAR:
+                case SHORT:
+                case USHORT:
+                case INT:
+                case UINT:
+                case BOOL:
                     return true;
                 case POINTER:
                 case STRING:
@@ -61,13 +60,14 @@ public class FastIntMethodFactory {
     final boolean isFastIntParam(Type paramType) {
         if (paramType instanceof Type.Builtin) {
             switch (paramType.getNativeType()) {
-                case INT8:
-                case UINT8:
-                case INT16:
-                case UINT16:
-                case INT32:
-                case UINT32:
-//                case FLOAT32:
+                case CHAR:
+                case UCHAR:
+                case SHORT:
+                case USHORT:
+                case INT:
+                case UINT:
+                case BOOL:
+//                case FLOAT:
                     return true;
                 case LONG:
                 case ULONG:
@@ -105,13 +105,14 @@ public class FastIntMethodFactory {
     
     final IntParameterConverter getIntParameterConverter(NativeParam type) {
         switch ((NativeType) type) {
-            case INT8: return Signed8ParameterConverter.INSTANCE;
-            case UINT8: return Unsigned8ParameterConverter.INSTANCE;
-            case INT16: return Signed16ParameterConverter.INSTANCE;
-            case UINT16: return Unsigned16ParameterConverter.INSTANCE;
-            case INT32: return Signed32ParameterConverter.INSTANCE;
-            case UINT32: return Unsigned32ParameterConverter.INSTANCE;
-            case FLOAT32: return Float32ParameterConverter.INSTANCE;
+            case BOOL: return BooleanParameterConverter.INSTANCE;
+            case CHAR: return Signed8ParameterConverter.INSTANCE;
+            case UCHAR: return Unsigned8ParameterConverter.INSTANCE;
+            case SHORT: return Signed16ParameterConverter.INSTANCE;
+            case USHORT: return Unsigned16ParameterConverter.INSTANCE;
+            case INT: return Signed32ParameterConverter.INSTANCE;
+            case UINT: return Unsigned32ParameterConverter.INSTANCE;
+            case FLOAT: return Float32ParameterConverter.INSTANCE;
             case LONG:
                 if (Platform.getPlatform().longSize() == 32) {
                     return Signed32ParameterConverter.INSTANCE;
@@ -140,13 +141,14 @@ public class FastIntMethodFactory {
     final IntResultConverter getIntResultConverter(NativeType type) {
         switch (type) {
             case VOID: return VoidResultConverter.INSTANCE;
-            case INT8: return Signed8ResultConverter.INSTANCE;
-            case UINT8: return Unsigned8ResultConverter.INSTANCE;
-            case INT16: return Signed16ResultConverter.INSTANCE;
-            case UINT16: return Unsigned16ResultConverter.INSTANCE;
-            case INT32: return Signed32ResultConverter.INSTANCE;
-            case UINT32: return Unsigned32ResultConverter.INSTANCE;
-            case FLOAT32: return Float32ResultConverter.INSTANCE;
+            case BOOL: return BooleanResultConverter.INSTANCE;
+            case CHAR: return Signed8ResultConverter.INSTANCE;
+            case UCHAR: return Unsigned8ResultConverter.INSTANCE;
+            case SHORT: return Signed16ResultConverter.INSTANCE;
+            case USHORT: return Unsigned16ResultConverter.INSTANCE;
+            case INT: return Signed32ResultConverter.INSTANCE;
+            case UINT: return Unsigned32ResultConverter.INSTANCE;
+            case FLOAT: return Float32ResultConverter.INSTANCE;
             case LONG:
                 if (Platform.getPlatform().longSize() == 32) {
                     return Signed32ResultConverter.INSTANCE;
@@ -175,6 +177,12 @@ public class FastIntMethodFactory {
         public static final IntResultConverter INSTANCE = new VoidResultConverter();
         public final IRubyObject fromNative(ThreadContext context, int value) {
             return context.getRuntime().getNil();
+        }
+    }
+    static final class BooleanResultConverter implements IntResultConverter {
+        public static final IntResultConverter INSTANCE = new BooleanResultConverter();
+        public final IRubyObject fromNative(ThreadContext context, int value) {
+            return context.getRuntime().newBoolean(value != 0);
         }
     }
     static final class Signed8ResultConverter implements IntResultConverter {
@@ -225,8 +233,7 @@ public class FastIntMethodFactory {
         public static final IntResultConverter INSTANCE = new PointerResultConverter();
         public final IRubyObject fromNative(ThreadContext context, int value) {
             final long address = ((long) value) & ADDRESS_MASK;
-            return new BasePointer(context.getRuntime(),
-                    address != 0 ? new NativeMemoryIO(address) : new NullMemoryIO(context.getRuntime()));
+            return new Pointer(context.getRuntime(), NativeMemoryIO.wrap(context.getRuntime(), address));
         }
     }
 
@@ -235,19 +242,7 @@ public class FastIntMethodFactory {
         public static final IntResultConverter INSTANCE = new StringResultConverter();
         public final IRubyObject fromNative(ThreadContext context, int value) {
             long address = ((long) value) & PointerResultConverter.ADDRESS_MASK;
-            if (address == 0) {
-                return context.getRuntime().getNil();
-            }
-            int len = (int) IO.getStringLength(address);
-            if (len == 0) {
-                return RubyString.newEmptyString(context.getRuntime());
-            }
-            byte[] bytes = new byte[len];
-            IO.getByteArray(address, bytes, 0, len);
-
-            RubyString s =  RubyString.newStringShared(context.getRuntime(), bytes);
-            s.setTaint(true);
-            return s;
+            return FFIUtil.getString(context.getRuntime(), address);
         }
     }
     static abstract class BaseParameterConverter implements IntParameterConverter {
@@ -257,6 +252,15 @@ public class FastIntMethodFactory {
             return true;
         }
 
+    }
+    static final class BooleanParameterConverter extends BaseParameterConverter {
+        public static final IntParameterConverter INSTANCE = new BooleanParameterConverter();
+        public final int intValue(ThreadContext context, IRubyObject obj) {
+            if (!(obj instanceof RubyBoolean)) {
+                throw context.getRuntime().newTypeError("wrong argument type.  Expected true or false");
+            }
+            return obj.isTrue() ? 1 : 0;
+        }
     }
     static final class Signed8ParameterConverter extends BaseParameterConverter {
         public static final IntParameterConverter INSTANCE = new Signed8ParameterConverter();

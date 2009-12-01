@@ -14,7 +14,7 @@
  * Copyright (C) 2002 Jan Arne Petersen <jpetersen@uni-bonn.de>
  * Copyright (C) 2002-2004 Anders Bengtsson <ndrsbngtssn@yahoo.se>
  * Copyright (C) 2005 Thomas E Enebo <enebo@acm.org>
- * 
+ *
  * Alternatively, the contents of this file may be used under the terms of
  * either of the GNU General Public License Version 2 or later (the "GPL"),
  * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
@@ -67,10 +67,14 @@ public abstract class DynamicMethod {
     protected Visibility visibility;
     /** The "call configuration" to use for pre/post call logic. */
     protected CallConfiguration callConfig;
-    
+    /** The serial number for this method object, to globally identify it */
+    protected long serialNumber;
+    /** Is this a builtin core method or not */
+    protected boolean builtin = false;
+
     /**
      * Base constructor for dynamic method handles.
-     * 
+     *
      * @param implementationClass The class to which this method will be
      * immediately bound
      * @param visibility The visibility assigned to this method
@@ -81,7 +85,7 @@ public abstract class DynamicMethod {
         assert implementationClass != null;
         init(implementationClass, visibility, callConfig);
     }
-    
+
     /**
      * A no-arg constructor used only by the UndefinedMethod subclass and
      * CompiledMethod handles. instanceof assertions make sure this is so.
@@ -91,7 +95,7 @@ public abstract class DynamicMethod {
 //                this instanceof CompiledMethod ||
 //                this instanceof );
     }
-    
+
     protected void init(RubyModule implementationClass, Visibility visibility, CallConfiguration callConfig) {
         this.visibility = visibility;
         this.implementationClass = implementationClass;
@@ -99,6 +103,24 @@ public abstract class DynamicMethod {
         // in the implementationClass
         this.protectedClass = calculateProtectedClass(implementationClass);
         this.callConfig = callConfig;
+        this.serialNumber = implementationClass.getRuntime().getNextDynamicMethodSerial();
+    }
+
+    /**
+     * Get the global serial number for this method object
+     *
+     * @return This method object's serial number
+     */
+    public long getSerialNumber() {
+        return serialNumber;
+    }
+
+    public boolean isBuiltin() {
+        return builtin;
+    }
+
+    public void setIsBuiltin(boolean isBuiltin) {
+        this.builtin = isBuiltin;
     }
 
     /**
@@ -108,7 +130,7 @@ public abstract class DynamicMethod {
      * subclasses will implement this method to check variable arity calls,
      * then performing a specific-arity invocation to the appropriate method
      * or performing variable-arity logic in-line.
-     * 
+     *
      * @param context The thread context for the currently executing thread
      * @param self The 'self' or 'receiver' object to use for this call
      * @param klazz The Ruby class against which this method is binding
@@ -117,7 +139,7 @@ public abstract class DynamicMethod {
      * @param block The block passed to this invocation
      * @return The result of the call
      */
-    public abstract IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz, 
+    public abstract IRubyObject call(ThreadContext context, IRubyObject self, RubyModule clazz,
             String name, IRubyObject[] args, Block block);
 
     /**
@@ -137,7 +159,7 @@ public abstract class DynamicMethod {
             String name, IRubyObject[] args) {
         return call(context, self, clazz, name, args, Block.NULL_BLOCK);
     }
-    
+
     ////////////////////////////////////////////////////////////////////////////
     // Now we provide default impls of a number of signatures. For each arity,
     // we first generate a non-block version of the method, which just adds
@@ -240,14 +262,15 @@ public abstract class DynamicMethod {
         return call(context, self, klazz, name, new IRubyObject[] {arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9}, block);
     }
 
-    
+
+
     /**
      * Duplicate this method, returning DynamicMethod referencing the same code
      * and with the same attributes.
-     * 
+     *
      * It is not required that this method produce a new object if the
      * semantics of the DynamicMethod subtype do not require such.
-     * 
+     *
      * @return An identical DynamicMethod object to the target.
      */
     public abstract DynamicMethod dup();
@@ -255,7 +278,7 @@ public abstract class DynamicMethod {
     /**
      * Determine whether this method is callable from the given object using
      * the given call type.
-     * 
+     *
      * @param caller The calling object
      * @param callType The type of call
      * @return true if the call would not violate visibility; false otherwise
@@ -269,14 +292,14 @@ public abstract class DynamicMethod {
         case PROTECTED:
             return protectedAccessOk(caller);
         }
-        
+
         return true;
     }
-    
+
     /**
      * Determine whether the given object can safely invoke protected methods on
      * the class this method is bound to.
-     * 
+     *
      * @param caller The calling object
      * @return true if the calling object can call protected methods; false
      * otherwise
@@ -284,11 +307,11 @@ public abstract class DynamicMethod {
     private boolean protectedAccessOk(IRubyObject caller) {
         return getProtectedClass().isInstance(caller);
     }
-    
+
     /**
      * Calculate, based on given RubyModule, which class in its hierarchy
      * should be used to determine protected access.
-     * 
+     *
      * @param cls The class from which to calculate
      * @return The class to be used for protected access checking.
      */
@@ -300,23 +323,23 @@ public abstract class DynamicMethod {
 
         // For visibility we need real meta class and not anonymous one from class << self
         if (cls instanceof MetaClass) cls = ((MetaClass) cls).getRealClass();
-        
+
         return cls;
     }
-    
+
     /**
      * Retrieve the pre-calculated "protected class" used for access checks.
-     * 
+     *
      * @return The "protected class" for access checks.
      */
     protected RubyModule getProtectedClass() {
         return protectedClass;
     }
-    
+
     /**
      * Retrieve the class or module on which this method is implemented, used
      * for 'super' logic among others.
-     * 
+     *
      * @return The class on which this method is implemented
      */
     public RubyModule getImplementationClass() {
@@ -326,7 +349,7 @@ public abstract class DynamicMethod {
     /**
      * Set the class on which this method is implemented, used for 'super'
      * logic, among others.
-     * 
+     *
      * @param implClass The class on which this method is implemented
      */
     public void setImplementationClass(RubyModule implClass) {
@@ -336,7 +359,7 @@ public abstract class DynamicMethod {
 
     /**
      * Get the visibility of this method.
-     * 
+     *
      * @return The visibility of this method
      */
     public Visibility getVisibility() {
@@ -345,7 +368,7 @@ public abstract class DynamicMethod {
 
     /**
      * Set the visibility of this method.
-     * 
+     *
      * @param visibility The visibility of this method
      */
     public void setVisibility(Visibility visibility) {
@@ -356,7 +379,7 @@ public abstract class DynamicMethod {
      * Whether this method is the "undefined" method, used to represent a
      * missing or undef'ed method. Only returns true for UndefinedMethod
      * instances, of which there should be only one (a singleton).
-     * 
+     *
      * @return true if this method is the undefined method; false otherwise
      */
     public final boolean isUndefined() {
@@ -367,18 +390,18 @@ public abstract class DynamicMethod {
      * Retrieve the arity of this method, used for reporting arity to Ruby
      * code. This arity may or may not reflect the actual specific or variable
      * arities of the referenced method.
-     * 
+     *
      * @return The arity of the method, as reported to Ruby consumers.
      */
     public Arity getArity() {
         return Arity.optional();
     }
-    
+
     /**
      * Get the "real" method contained within this method. This simply returns
      * self except in cases where a method is wrapped to give it a new
      * name or new implementation class (AliasMethod, WrapperMethod, ...).
-     * 
+     *
      * @return The "real" method associated with this one
      */
     public DynamicMethod getRealMethod() {
@@ -387,7 +410,7 @@ public abstract class DynamicMethod {
 
     /**
      * Get the CallConfiguration used for pre/post logic for this method handle.
-     * 
+     *
      * @return The CallConfiguration for this method handle
      */
     public CallConfiguration getCallConfig() {
@@ -396,16 +419,16 @@ public abstract class DynamicMethod {
 
     /**
      * Set the CallConfiguration used for pre/post logic for this method handle.
-     * 
+     *
      * @param callConfig The CallConfiguration for this method handle
      */
     public void setCallConfig(CallConfiguration callConfig) {
         this.callConfig = callConfig;
     }
-    
+
     /**
      * Returns true if this method is backed by native (i.e. Java) code.
-     * 
+     *
      * @return true If backed by Java code or JVM bytecode; false otherwise
      */
     public boolean isNative() {

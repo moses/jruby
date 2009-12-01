@@ -61,6 +61,7 @@ import org.jruby.runtime.BlockBody;
 import org.jruby.runtime.CallType;
 import org.jruby.runtime.CompiledBlockCallback;
 import org.jruby.runtime.DynamicScope;
+import org.jruby.runtime.RubyEvent;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.Visibility;
 import org.jruby.runtime.builtin.IRubyObject;
@@ -103,7 +104,7 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
             argParamCount = scope.getRequiredArgs(); // specific arity
         }
 
-        method = new SkinnyMethodAdapter(script.getClassVisitor().visitMethod(ACC_PUBLIC, methodName, getSignature(), null, null));
+        method = new SkinnyMethodAdapter(script.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_STATIC, methodName, getSignature(), null, null));
 
         createVariableCompiler();
         if (StandardASMCompiler.invDynInvCompilerConstructor != null) {
@@ -576,6 +577,15 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
     }
 
     public void createNewHash(Object elements, ArrayCallback callback, int keyCount) {
+        createNewHashCommon(elements, callback, keyCount, "constructHash", "fastASetCheckString");
+    }
+    
+    public void createNewHash19(Object elements, ArrayCallback callback, int keyCount) {
+        createNewHashCommon(elements, callback, keyCount, "constructHash19", "fastASetCheckString19");
+    }
+    
+    private void createNewHashCommon(Object elements, ArrayCallback callback, int keyCount,
+            String constructorName, String methodName) {
         loadRuntime();
 
         // use specific-arity for as much as possible
@@ -584,12 +594,13 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
             callback.nextValue(this, elements, i);
         }
 
-        invokeUtilityMethod("constructHash", sig(RubyHash.class, params(Ruby.class, IRubyObject.class, i * 2)));
+        invokeUtilityMethod(constructorName, sig(RubyHash.class, params(Ruby.class, IRubyObject.class, i * 2)));
 
         for (; i < keyCount; i++) {
             method.dup();
+            loadRuntime();
             callback.nextValue(this, elements, i);
-            method.invokevirtual(p(RubyHash.class), "fastASet", sig(void.class, params(IRubyObject.class, IRubyObject.class)));
+            method.invokevirtual(p(RubyHash.class), methodName, sig(void.class, params(Ruby.class, IRubyObject.class, IRubyObject.class)));
         }
     }
 
@@ -1004,7 +1015,9 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
     }
 
     public void retrieveGlobalVariable(String name) {
-        getScriptCompiler().getCacheCompiler().getGlobal(this, name);
+        loadRuntime();
+        method.ldc(name);
+        invokeUtilityMethod("getGlobalVariable", sig(IRubyObject.class, Ruby.class, String.class));
     }
 
     public void assignGlobalVariable(String name) {
@@ -1014,7 +1027,10 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
     }
 
     public void assignGlobalVariable(String name, CompilerCallback value) {
-        getScriptCompiler().getCacheCompiler().setGlobal(this, name, value);
+        value.call(this);
+        loadRuntime();
+        method.ldc(name);
+        invokeUtilityMethod("setGlobalVariable", sig(IRubyObject.class, IRubyObject.class, Ruby.class, String.class));
     }
 
     public void negateCurrentValue() {
@@ -1267,7 +1283,13 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
 
     public void protect(BranchCallback regularCode, BranchCallback protectedCode, Class ret) {
         String mname = getNewEnsureName();
-        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(script.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_SYNTHETIC, mname, sig(ret, new Class[]{ThreadContext.class, IRubyObject.class, Block.class}), null, null));
+        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(
+                script.getClassVisitor().visitMethod(
+                ACC_PUBLIC | ACC_SYNTHETIC | ACC_STATIC,
+                mname,
+                sig(ret, "L" + script.getClassname() + ";", ThreadContext.class, IRubyObject.class, Block.class),
+                null,
+                null));
         SkinnyMethodAdapter old_method = null;
         SkinnyMethodAdapter var_old_method = null;
         SkinnyMethodAdapter inv_old_method = null;
@@ -1344,7 +1366,10 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
         } else {
             loadBlock();
         }
-        method.invokevirtual(script.getClassname(), mname, sig(ret, new Class[]{ThreadContext.class, IRubyObject.class, Block.class}));
+        method.invokestatic(
+                script.getClassname(),
+                mname,
+                sig(ret, "L" + script.getClassname() + ";", ThreadContext.class, IRubyObject.class, Block.class));
     }
 
     public void performEnsure(BranchCallback regularCode, BranchCallback protectedCode) {
@@ -1400,7 +1425,13 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
 
     public void rescue(BranchCallback regularCode, Class exception, BranchCallback catchCode, Class ret) {
         String mname = getNewRescueName();
-        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(script.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_SYNTHETIC, mname, sig(ret, new Class[]{ThreadContext.class, IRubyObject.class, Block.class}), null, null));
+        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(
+                script.getClassVisitor().visitMethod(
+                    ACC_PUBLIC | ACC_SYNTHETIC | ACC_STATIC,
+                    mname,
+                    sig(ret, "L" + script.getClassname() + ";", ThreadContext.class, IRubyObject.class, Block.class),
+                    null,
+                    null));
         SkinnyMethodAdapter old_method = null;
         SkinnyMethodAdapter var_old_method = null;
         SkinnyMethodAdapter inv_old_method = null;
@@ -1516,7 +1547,10 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
         } else {
             loadBlock();
         }
-        method.invokevirtual(script.getClassname(), mname, sig(ret, new Class[]{ThreadContext.class, IRubyObject.class, Block.class}));
+        method.invokestatic(
+                script.getClassname(),
+                mname,
+                sig(ret, "L" + script.getClassname() + ";", ThreadContext.class, IRubyObject.class, Block.class));
     }
 
     public void performRescue(BranchCallback regularCode, BranchCallback rubyCatchCode, boolean needsRetry) {
@@ -1940,6 +1974,13 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
         method.invokevirtual(p(GlobalVariables.class), "alias", sig(Void.TYPE, params(String.class, String.class)));
         loadNil();
     }
+    
+    public void raiseTypeError(String msg) {
+        loadRuntime();        
+        method.ldc(msg);
+        invokeRuby("newTypeError", sig(RaiseException.class, params(String.class)));
+        method.athrow();                                    
+    }    
 
     public void undefMethod(String name) {
         loadThreadContext();
@@ -2035,6 +2076,8 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
                 } else {
                     classBody.invokeThreadContext("preCompiledClassDummyScope", sig(Void.TYPE, params(RubyModule.class, StaticScope.class)));
                 }
+
+                if (RubyInstanceConfig.FULL_TRACE_ENABLED) classBody.traceClass();
             }
         };
 
@@ -2052,6 +2095,7 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
         bodyCallback.call(classBody);
         classBody.method.label(end);
         // finally with no exception
+        if (RubyInstanceConfig.FULL_TRACE_ENABLED) classBody.traceEnd();
         classBody.loadThreadContext();
         classBody.invokeThreadContext("postCompiledClass", sig(Void.TYPE, params()));
 
@@ -2059,6 +2103,7 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
 
         classBody.method.label(after);
         // finally with exception
+        if (RubyInstanceConfig.FULL_TRACE_ENABLED) classBody.traceEnd();
         classBody.loadThreadContext();
         classBody.invokeThreadContext("postCompiledClass", sig(Void.TYPE, params()));
         classBody.method.athrow();
@@ -2084,7 +2129,7 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
         }
         method.getstatic(p(Block.class), "NULL_BLOCK", ci(Block.class));
 
-        method.invokevirtual(script.getClassname(), classMethodName, StandardASMCompiler.METHOD_SIGNATURES[0]);
+        method.invokestatic(script.getClassname(), classMethodName, StandardASMCompiler.getStaticMethodSignature(script.getClassname(), 0));
     }
 
     public void defineModule(final String name, final StaticScope staticScope, final CompilerCallback pathCallback, final CompilerCallback bodyCallback, final ASTInspector inspector) {
@@ -2121,6 +2166,8 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
                 } else {
                     classBody.invokeThreadContext("preCompiledClassDummyScope", sig(Void.TYPE, params(RubyModule.class, StaticScope.class)));
                 }
+
+                if (RubyInstanceConfig.FULL_TRACE_ENABLED) classBody.traceClass();
             }
         };
 
@@ -2141,11 +2188,13 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
         classBody.method.go_to(noException);
 
         classBody.method.label(after);
+        if (RubyInstanceConfig.FULL_TRACE_ENABLED) classBody.traceEnd();
         classBody.loadThreadContext();
         classBody.invokeThreadContext("postCompiledClass", sig(Void.TYPE, params()));
         classBody.method.athrow();
 
         classBody.method.label(noException);
+        if (RubyInstanceConfig.FULL_TRACE_ENABLED) classBody.traceEnd();
         classBody.loadThreadContext();
         classBody.invokeThreadContext("postCompiledClass", sig(Void.TYPE, params()));
 
@@ -2158,7 +2207,7 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
         method.getstatic(p(IRubyObject.class), "NULL_ARRAY", ci(IRubyObject[].class));
         method.getstatic(p(Block.class), "NULL_BLOCK", ci(Block.class));
 
-        method.invokevirtual(script.getClassname(), moduleMethodName, StandardASMCompiler.METHOD_SIGNATURES[4]);
+        method.invokestatic(script.getClassname(), moduleMethodName, StandardASMCompiler.getStaticMethodSignature(script.getClassname(), 4));
     }
 
     public void unwrapPassedBlock() {
@@ -2281,7 +2330,7 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
 
     public void defineNewMethod(String name, int methodArity, StaticScope scope,
             CompilerCallback body, CompilerCallback args,
-            CompilerCallback receiver, ASTInspector inspector, boolean root) {
+            CompilerCallback receiver, ASTInspector inspector, boolean root, String filename, int line) {
         // TODO: build arg list based on number of args, optionals, etc
         String newMethodName;
         if (root && Boolean.getBoolean("jruby.compile.toplevel")) {
@@ -2320,14 +2369,16 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
         method.pushInt(scope.getRequiredArgs());
         method.pushInt(scope.getOptionalArgs());
         method.pushInt(scope.getRestArg());
+        method.ldc(filename);
+        method.ldc(line);
         method.getstatic(p(CallConfiguration.class), inspector.getCallConfig().name(), ci(CallConfiguration.class));
 
         if (receiver != null) {
             invokeUtilityMethod("defs", sig(IRubyObject.class,
-                    params(ThreadContext.class, IRubyObject.class, IRubyObject.class, Object.class, String.class, String.class, String[].class, int.class, int.class, int.class, int.class, CallConfiguration.class)));
+                    params(ThreadContext.class, IRubyObject.class, IRubyObject.class, Object.class, String.class, String.class, String[].class, int.class, int.class, int.class, int.class, String.class, int.class, CallConfiguration.class)));
         } else {
             invokeUtilityMethod("def", sig(IRubyObject.class,
-                    params(ThreadContext.class, IRubyObject.class, Object.class, String.class, String.class, String[].class, int.class, int.class, int.class, int.class, CallConfiguration.class)));
+                    params(ThreadContext.class, IRubyObject.class, Object.class, String.class, String.class, String[].class, int.class, int.class, int.class, int.class, String.class, int.class, CallConfiguration.class)));
         }
     }
 
@@ -2532,5 +2583,20 @@ public abstract class BaseBodyCompiler implements BodyCompiler {
         method.label(done);
 
         getVariableCompiler().releaseTempLocal();
+    }
+
+    public void traceLine() {
+        loadThreadContext();
+        invokeUtilityMethod("traceLine", sig(void.class, ThreadContext.class));
+    }
+
+    public void traceClass() {
+        loadThreadContext();
+        invokeUtilityMethod("traceClass", sig(void.class, ThreadContext.class));
+    }
+
+    public void traceEnd() {
+        loadThreadContext();
+        invokeUtilityMethod("traceEnd", sig(void.class, ThreadContext.class));
     }
 }

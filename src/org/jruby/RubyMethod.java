@@ -93,7 +93,7 @@ public class RubyMethod extends RubyObject implements DataType {
         newMethod.methodName = methodName;
         newMethod.originModule = originModule;
         newMethod.originName = originName;
-        newMethod.method = method.getRealMethod();
+        newMethod.method = method;
         newMethod.receiver = receiver;
 
         return newMethod;
@@ -256,17 +256,22 @@ public class RubyMethod extends RubyObject implements DataType {
         return str;
     }
 
-    @JRubyMethod(name = "name", compat = CompatVersion.RUBY1_9)
+    @JRubyMethod(name = "name", compat = CompatVersion.RUBY1_8)
     public IRubyObject name(ThreadContext context) {
+        return context.getRuntime().newString(methodName);
+    }
+
+    @JRubyMethod(name = "name", compat = CompatVersion.RUBY1_9)
+    public IRubyObject name19(ThreadContext context) {
         return context.getRuntime().newSymbol(methodName);
     }
 
-    @JRubyMethod(name = "receiver", compat = CompatVersion.RUBY1_9)
+    @JRubyMethod(name = "receiver")
     public IRubyObject receiver(ThreadContext context) {
         return receiver;
     }
 
-    @JRubyMethod(name = "owner", compat = CompatVersion.RUBY1_9)
+    @JRubyMethod(name = "owner")
     public IRubyObject owner(ThreadContext context) {
         return implementationModule;
     }

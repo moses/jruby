@@ -59,6 +59,12 @@ public class RubyMath {
             throw recv.getRuntime().newErrnoEDOMError(msg);
         }
     }
+
+    private static void zeroInLogCheck(IRubyObject recv, double value) {
+        if (value == 0.0) {
+            throw recv.getRuntime().newErrnoEDOMError("log");
+        }
+    }
     
     private static double chebylevSerie(double x, double coef[]) {
         double  b0, b1, b2, twox;
@@ -226,9 +232,23 @@ public class RubyMath {
         .6698674738165069539715526882986e-17,
         .4497954546494931083083327624533e-18
     };    
-    
-    @JRubyMethod(name = "atanh", required = 1, module = true, visibility = Visibility.PRIVATE)
+
+    @JRubyMethod(name = "atanh", required = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_8)
     public static RubyFloat atanh(IRubyObject recv, IRubyObject x) {
+        return atanh_common(recv, x);
+    }
+
+    @JRubyMethod(name = "atanh", required = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_9)
+    public static RubyFloat atanh_19(IRubyObject recv, IRubyObject x) {
+        double value = ((RubyFloat)RubyKernel.new_float(recv,x)).getDoubleValue();
+        double  y = Math.abs(value);
+        if (y==1.0) {
+            throw recv.getRuntime().newErrnoEDOMError("atanh");
+        }
+        return atanh_common(recv, x);
+    }
+
+    private static RubyFloat atanh_common(IRubyObject recv, IRubyObject x) {
         double value = ((RubyFloat)RubyKernel.new_float(recv,x)).getDoubleValue();
         double  y = Math.abs(value);
         double  result;
@@ -257,26 +277,60 @@ public class RubyMath {
         return RubyFloat.newFloat(recv.getRuntime(),Math.exp(value));
     }
 
+    private static RubyFloat log_common(IRubyObject recv, IRubyObject x, double base) {
+        double value = ((RubyFloat)RubyKernel.new_float(recv,x)).getDoubleValue();
+        double result = Math.log(value)/Math.log(base);
+        domainCheck(recv, result, "log");
+        return RubyFloat.newFloat(recv.getRuntime(),result);
+    }
+
     /** Returns the natural logarithm of x.
      * 
      */
-    @JRubyMethod(name = "log", required = 1, module = true, visibility = Visibility.PRIVATE)
+    @JRubyMethod(name = "log", required = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_8)
     public static RubyFloat log(IRubyObject recv, IRubyObject x) {
-        double value = ((RubyFloat)RubyKernel.new_float(recv,x)).getDoubleValue();
-        double result = Math.log(value);
-        domainCheck(recv, result, "log");
-        return RubyFloat.newFloat(recv.getRuntime(),result);
+        return log_common(recv, x, Math.E);
+    }
+
+    @JRubyMethod(name = "log", required = 1, optional = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_9)
+    public static RubyFloat log_19(IRubyObject recv, IRubyObject[] args) {
+        double value = ((RubyFloat)RubyKernel.new_float(recv,args[0])).getDoubleValue();
+        double base = Math.E;
+        if (args.length == 2) {
+            base = ((RubyFloat)RubyKernel.new_float(recv,args[1])).getDoubleValue();
+        }
+        zeroInLogCheck(recv, value);
+        return log_common(recv, args[0], base);
     }
 
     /** Returns the base 10 logarithm of x.
      * 
      */
-    @JRubyMethod(name = "log10", required = 1, module = true, visibility = Visibility.PRIVATE)
+    @JRubyMethod(name = "log10", required = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_8)
     public static RubyFloat log10(IRubyObject recv, IRubyObject x) {
+        return log_common(recv, x, 10);
+    }
+
+    @JRubyMethod(name = "log10", required = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_9)
+    public static RubyFloat log10_19(IRubyObject recv, IRubyObject x) {
         double value = ((RubyFloat)RubyKernel.new_float(recv,x)).getDoubleValue();
-        double result =  Math.log(value) / Math.log(10);
-        domainCheck(recv, result, "log10");
-        return RubyFloat.newFloat(recv.getRuntime(),result);
+        zeroInLogCheck(recv, value);
+        return log_common(recv, x, 10);
+    }
+
+    /** Returns the base 2 logarithm of x.
+     *
+     */
+    @JRubyMethod(name = "log2", required = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_8)
+    public static RubyFloat log2(IRubyObject recv, IRubyObject x) {
+        return log_common(recv, x, 2);
+    }
+
+    @JRubyMethod(name = "log2", required = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_9)
+    public static RubyFloat log2_19(IRubyObject recv, IRubyObject x) {
+        double value = ((RubyFloat)RubyKernel.new_float(recv,x)).getDoubleValue();
+        zeroInLogCheck(recv, value);
+        return log_common(recv, x, 2);
     }
 
     @JRubyMethod(name = "sqrt", required = 1, module = true, visibility = Visibility.PRIVATE)
@@ -294,6 +348,21 @@ public class RubyMath {
         return RubyFloat.newFloat(recv.getRuntime(), result);
     }
     
+    @JRubyMethod(name = "cbrt", required = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_9)
+    public static RubyFloat cbrt(IRubyObject recv, IRubyObject x) {
+        double value = ((RubyFloat)RubyKernel.new_float(recv,x)).getDoubleValue();
+        double result;
+
+        if (value < 0) {
+            result = -Math.pow(-value, 1/3.0);
+        } else{
+            result = Math.pow(value, 1/3.0);
+        }
+
+        domainCheck(recv, result, "cbrt");
+        return RubyFloat.newFloat(recv.getRuntime(), result);
+    }
+
     @JRubyMethod(name = "hypot", required = 2, module = true, visibility = Visibility.PRIVATE)
     public static RubyFloat hypot(IRubyObject recv, IRubyObject x, IRubyObject y) {
         double valuea = ((RubyFloat)RubyKernel.new_float(recv,x)).getDoubleValue(); 
@@ -478,4 +547,144 @@ public class RubyMath {
         return RubyFloat.newFloat(recv.getRuntime(),result);        
     }
 
+    private static final double FACTORIAL[] = {
+        /*  0! */ 1.0,
+        /*  1! */ 1.0,
+        /*  2! */ 2.0,
+        /*  3! */ 6.0,
+        /*  4! */ 24.0,
+        /*  5! */ 120.0,
+        /*  6! */ 720.0,
+        /*  7! */ 5040.0,
+        /*  8! */ 40320.0,
+        /*  9! */ 362880.0,
+        /* 10! */ 3628800.0,
+        /* 11! */ 39916800.0,
+        /* 12! */ 479001600.0,
+        /* 13! */ 6227020800.0,
+        /* 14! */ 87178291200.0,
+        /* 15! */ 1307674368000.0,
+        /* 16! */ 20922789888000.0,
+        /* 17! */ 355687428096000.0,
+        /* 18! */ 6402373705728000.0,
+        /* 19! */ 121645100408832000.0,
+        /* 20! */ 2432902008176640000.0,
+        /* 21! */ 51090942171709440000.0,
+        /* 22! */ 1124000727777607680000.0
+    };
+
+    private static final double NEMES_GAMMA_COEFF[] = {
+        1.00000000000000000000000000000000000,
+        0                                    ,
+        0.08333333333333333333333333333333333,
+        0                                    ,
+        0.00069444444444444444444444444444444,
+        0                                    ,
+        0.00065861992945326278659611992945326,
+        0                                    ,
+       -0.00053287817827748383303938859494415,
+        0                                    ,
+        0.00079278588700608376534302460228386,
+        0                                    ,
+       -0.00184758189322033028400606295961969,
+        0                                    ,
+        0.00625067824784941846328836824623616,
+        0                                    ,
+       -0.02901710246301150993444701506844402,
+        0                                    ,
+        0.17718457242491308890302832366796470,
+        0                                    ,
+       -1.37747681703993534399676348903067470
+    };
+
+
+    /**
+     * Based on Gerg&#337; Nemes's Gamma Function approximation formula, we compute
+     * approximate value of Gamma function of x.
+     * @param recv Math module
+     * @param x a real number
+     * @return &Gamma;(x) for real number x
+     * @see <a href="http://www.ebyte.it/library/downloads/2008_MTH_Nemes_GammaApproximationUpdate.pdf">
+     * New asymptotic expansion for the &Gamma;(x) function</a>
+     */
+
+    @JRubyMethod(name = "gamma", required = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_9)
+    public static RubyFloat gamma(IRubyObject recv, IRubyObject x) {
+        double value = ((RubyFloat) RubyKernel.new_float(recv, x)).getDoubleValue();
+        double result = nemes_gamma(value);
+        /* note nemes_gamma can return Double.POSITIVE_INFINITY or Double.NEGATIVE_INFINITY
+         * when value is an integer less than 1.
+         * We treat 0 as a special case to avoid Domain error.
+         */
+        if (Double.isInfinite(result) && value < 0) {
+            result = Double.NaN;
+        }
+        domainCheck(recv, result, "gamma");
+        return RubyFloat.newFloat(recv.getRuntime(), result);
+
+    }
+
+    /**
+     * Based on Gerg&#337; Nemes's Gamma Function approximation formula, we compute
+     * Log Gamma function for real number x.
+     * @param recv Math module
+     * @param x a real number
+     * @return 2-element array [ln(&Gamma;(x)), sgn] for real number x,
+     *  where sgn is the sign of &Gamma;(x) when exponentiated
+     * @see #gamma(org.jruby.runtime.builtin.IRubyObject, org.jruby.runtime.builtin.IRubyObject)
+     */
+
+    @JRubyMethod(name = "lgamma", required = 1, module = true, visibility = Visibility.PRIVATE, compat = CompatVersion.RUBY1_9)
+    public static RubyArray lgamma(IRubyObject recv, IRubyObject x) {
+        Ruby runtime      = recv.getRuntime();
+        double value      = RubyKernel.new_float(recv, x).getDoubleValue();
+        NemesLogGamma l   = new NemesLogGamma(value);
+        IRubyObject[] ary = new IRubyObject[2];
+        ary[0] = RubyFloat.newFloat(runtime, l.value);
+        ary[1] = RubyInteger.int2fix(runtime, (int) l.sign);
+
+        return RubyArray.newArray(recv.getRuntime(), ary);
+    }
+
+    private static double nemes_gamma(double x) {
+        double int_part = (int) x;
+
+        if ((x - int_part) == 0.0 && 0 < int_part && int_part <= FACTORIAL.length) {
+            return FACTORIAL[(int) int_part - 1];
+        }
+        NemesLogGamma l = new NemesLogGamma(x);
+        return l.sign * Math.exp(l.value);
+    }
+
+    /**
+     * Inner class to help with &Gamma; functions
+     */
+    private static class NemesLogGamma {
+        double value;
+        double sign;
+
+        private NemesLogGamma(double x) {
+            double int_part = (int) x;
+            sign = (int_part % 2 == 0 && (x - int_part) != 0.0 && (x < 0)) ? -1 : 1;
+            if ((x - int_part) == 0.0 && 0 < int_part && int_part <= FACTORIAL.length) {
+                value = Math.log(FACTORIAL[(int) int_part - 1]);
+            }
+            else if (x < 10) {
+                double rising_factorial = 1;
+                for (int i = 0; i < (int) Math.abs(x) - int_part + 10; i++) {
+                    rising_factorial *= (x + i);
+                }
+                NemesLogGamma l = new NemesLogGamma(x + (int) Math.abs(x) - int_part + 10);
+                value = l.value - Math.log(Math.abs(rising_factorial));
+            } else {
+                double temp = 0.0;
+                for (int i = 0; i < NEMES_GAMMA_COEFF.length; i++) {
+                    temp += NEMES_GAMMA_COEFF[i] * 1.0 / Math.pow(x, i);
+                }
+
+                value = x * (Math.log(x) - 1 + Math.log(temp)) +
+                        (Math.log(2) + Math.log(Math.PI) - Math.log(x)) / 2.0;
+            }
+        }
+    }
 }

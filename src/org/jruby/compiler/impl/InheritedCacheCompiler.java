@@ -47,7 +47,6 @@ public class InheritedCacheCompiler implements CacheCompiler {
     Map<BigInteger, String> bigIntegers = new HashMap<BigInteger, String>();
     Map<String, Integer> symbolIndices = new HashMap<String, Integer>();
     Map<Long, Integer> fixnumIndices = new HashMap<Long, Integer>();
-    Map<String, Integer> globalIndices = new HashMap<String, Integer>();
     int inheritedSymbolCount = 0;
     int inheritedStringCount = 0;
     int inheritedRegexpCount = 0;
@@ -59,7 +58,8 @@ public class InheritedCacheCompiler implements CacheCompiler {
     int inheritedBlockBodyCount = 0;
     int inheritedBlockCallbackCount = 0;
     int inheritedMethodCount = 0;
-    int inheritedGlobalCount = 0;
+
+    boolean runtimeCacheInited = false;
     
     public InheritedCacheCompiler(StandardASMCompiler scriptCompiler) {
         this.scriptCompiler = scriptCompiler;
@@ -108,7 +108,7 @@ public class InheritedCacheCompiler implements CacheCompiler {
     public void cacheSymbol(BaseBodyCompiler method, String symbol) {
         Integer index = symbolIndices.get(symbol);
         if (index == null) {
-            index = new Integer(inheritedSymbolCount++);
+            index = Integer.valueOf(inheritedSymbolCount++);
             symbolIndices.put(symbol, index);
         }
 
@@ -145,23 +145,22 @@ public class InheritedCacheCompiler implements CacheCompiler {
         Label alreadyCompiled = new Label();
 
         method.loadThis();
+        method.method.getfield(scriptCompiler.getClassname(), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
         method.method.pushInt(index);
-        method.method.invokevirtual(scriptCompiler.getClassname(), "getRegexp", sig(RubyRegexp.class, int.class));
+        method.method.invokevirtual(p(AbstractScript.RuntimeCache.class), "getRegexp", sig(RubyRegexp.class, int.class));
+        method.method.dup();
 
         method.ifNotNull(alreadyCompiled);
 
+        method.method.pop();
         method.loadThis();
-        method.loadRuntime();
+        method.method.getfield(scriptCompiler.getClassname(), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
         method.method.pushInt(index);
         createStringCallback.call(method);
-        method.method.invokevirtual(p(RubyString.class), "getByteList", sig(ByteList.class));
         method.method.ldc(options);
-        method.method.invokevirtual(scriptCompiler.getClassname(), "cacheRegexp", sig(void.class, Ruby.class, int.class, ByteList.class, int.class));
+        method.method.invokevirtual(p(AbstractScript.RuntimeCache.class), "cacheRegexp", sig(RubyRegexp.class, int.class, RubyString.class, int.class));
 
         method.method.label(alreadyCompiled);
-        method.loadThis();
-        method.method.pushInt(index);
-        method.method.invokevirtual(scriptCompiler.getClassname(), "getRegexp", sig(RubyRegexp.class, int.class));
     }
     
     public void cacheFixnum(BaseBodyCompiler method, long value) {
@@ -195,7 +194,7 @@ public class InheritedCacheCompiler implements CacheCompiler {
         } else {
             Integer index = fixnumIndices.get(value);
             if (index == null) {
-                index = new Integer(inheritedFixnumCount++);
+                index =  Integer.valueOf(inheritedFixnumCount++);
                 fixnumIndices.put(value, index);
             }
             
@@ -252,7 +251,7 @@ public class InheritedCacheCompiler implements CacheCompiler {
         String asString = contents.toString();
         Integer index = stringIndices.get(asString);
         if (index == null) {
-            index = new Integer(inheritedStringCount++);
+            index = Integer.valueOf(inheritedStringCount++);
             stringIndices.put(asString, index);
         }
 
@@ -428,55 +427,20 @@ public class InheritedCacheCompiler implements CacheCompiler {
         inheritedMethodCount++;
     }
 
-    public void getGlobal(BaseBodyCompiler method, String name) {
-        method.loadThis();
-        method.loadThreadContext();
-
-        Integer index = globalIndices.get(name);
-        if (index == null) {
-            index = inheritedGlobalCount++;
-            globalIndices.put(name, index);
-        }
-        if (index < AbstractScript.NUMBERED_GLOBAL_COUNT) {
-            method.method.ldc(name);
-            method.method.invokevirtual(scriptCompiler.getClassname(), "getGlobal" + index, sig(IRubyObject.class, ThreadContext.class, String.class));
-        } else {
-            method.method.pushInt(index);
-            method.method.ldc(name);
-            method.method.invokevirtual(scriptCompiler.getClassname(), "getGlobal", sig(IRubyObject.class, ThreadContext.class, int.class, String.class));
-        }
-    }
-
-    public void setGlobal(BaseBodyCompiler method, String name, CompilerCallback value) {
-        method.loadThis();
-        method.loadThreadContext();
-
-        Integer index = globalIndices.get(name);
-        if (index == null) {
-            index = inheritedGlobalCount++;
-            globalIndices.put(name, index);
-        }
-        if (index < AbstractScript.NUMBERED_GLOBAL_COUNT) {
-            method.method.ldc(name);
-            value.call(method);
-            method.method.invokevirtual(scriptCompiler.getClassname(), "setGlobal" + index, sig(IRubyObject.class, ThreadContext.class, String.class, IRubyObject.class));
-        } else {
-            method.method.pushInt(index);
-            method.method.ldc(name);
-            value.call(method);
-            method.method.invokevirtual(scriptCompiler.getClassname(), "setGlobal", sig(IRubyObject.class, ThreadContext.class, int.class, String.class, IRubyObject.class));
-        }
-    }
-
     public void finish() {
         SkinnyMethodAdapter initMethod = scriptCompiler.getInitMethod();
 
         // generate call sites initialization code
         int size = callSiteList.size();
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+            
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
+            initMethod.dup();
             initMethod.pushInt(size);
-            initMethod.anewarray(p(CallSite.class));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initCallSites", sig(void.class, int.class));
+            initMethod.getfield(p(AbstractScript.RuntimeCache.class), "callSites", ci(CallSite[].class));
             
             for (int i = size - 1; i >= 0; i--) {
                 String name = callSiteList.get(i);
@@ -496,94 +460,128 @@ public class InheritedCacheCompiler implements CacheCompiler {
                     initMethod.invokestatic(scriptCompiler.getClassname(), "setSuperCallSite", sig(CallSite[].class, params(CallSite[].class, int.class)));
                 }
             }
-            initMethod.putfield(scriptCompiler.getClassname(), "callSites", ci(CallSite[].class));
+
+            initMethod.pop();
         }
 
         size = scopeCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initScopes", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initScopes", sig(void.class, params(int.class)));
         }
 
         // generate symbols initialization code
         size = inheritedSymbolCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initSymbols", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initSymbols", sig(void.class, params(int.class)));
         }
 
         // generate fixnums initialization code
         size = inheritedFixnumCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initFixnums", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initFixnums", sig(void.class, params(int.class)));
         }
 
         // generate constants initialization code
         size = inheritedConstantCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initConstants", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initConstants", sig(void.class, params(int.class)));
         }
 
         // generate regexps initialization code
         size = inheritedRegexpCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initRegexps", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initRegexps", sig(void.class, params(int.class)));
         }
 
         // generate regexps initialization code
         size = inheritedBigIntegerCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initBigIntegers", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initBigIntegers", sig(void.class, params(int.class)));
         }
 
         // generate variable readers initialization code
         size = inheritedVariableReaderCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initVariableReaders", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initVariableReaders", sig(void.class, params(int.class)));
         }
 
         // generate variable writers initialization code
         size = inheritedVariableWriterCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initVariableWriters", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initVariableWriters", sig(void.class, params(int.class)));
         }
 
         // generate block bodies initialization code
         size = inheritedBlockBodyCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initBlockBodies", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initBlockBodies", sig(void.class, params(int.class)));
         }
 
         // generate block bodies initialization code
         size = inheritedBlockCallbackCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initBlockCallbacks", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initBlockCallbacks", sig(void.class, params(int.class)));
         }
 
         // generate bytelists initialization code
         size = inheritedStringCount;
         if (inheritedStringCount > 0) {
+            ensureRuntimeCacheInited(initMethod);
+
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initStrings", sig(ByteList[].class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initStrings", sig(ByteList[].class, params(int.class)));
 
             for (Map.Entry<String, Integer> entry : stringIndices.entrySet()) {
                 initMethod.ldc(entry.getValue());
@@ -597,17 +595,23 @@ public class InheritedCacheCompiler implements CacheCompiler {
         // generate method cache initialization code
         size = inheritedMethodCount;
         if (size != 0) {
+            ensureRuntimeCacheInited(initMethod);
+            
             initMethod.aload(0);
+            initMethod.getfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
             initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initMethodCache", sig(void.class, params(int.class)));
+            initMethod.invokevirtual(p(AbstractScript.RuntimeCache.class), "initMethodCache", sig(void.class, params(int.class)));
         }
+    }
 
-        // generate method cache initialization code
-        size = inheritedGlobalCount;
-        if (size != 0) {
+    private void ensureRuntimeCacheInited(SkinnyMethodAdapter initMethod) {
+        if (!runtimeCacheInited) {
             initMethod.aload(0);
-            initMethod.pushInt(size);
-            initMethod.invokevirtual(scriptCompiler.getClassname(), "initGlobalCache", sig(void.class, params(int.class)));
+            initMethod.newobj(p(AbstractScript.RuntimeCache.class));
+            initMethod.dup();
+            initMethod.invokespecial(p(AbstractScript.RuntimeCache.class), "<init>", sig(void.class));
+            initMethod.putfield(p(AbstractScript.class), "runtimeCache", ci(AbstractScript.RuntimeCache.class));
+            runtimeCacheInited = true;
         }
     }
 }

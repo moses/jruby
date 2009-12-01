@@ -63,7 +63,7 @@ import org.jruby.ast.FixnumNode;
 import org.jruby.ast.FloatNode;
 import org.jruby.ast.ForNode;
 import org.jruby.ast.GlobalVarNode;
-import org.jruby.ast.HashNode;
+import org.jruby.ast.Hash19Node;
 import org.jruby.ast.IfNode;
 import org.jruby.ast.InstVarNode;
 import org.jruby.ast.IterNode;
@@ -108,6 +108,7 @@ import org.jruby.ast.XStrNode;
 import org.jruby.ast.YieldNode;
 import org.jruby.ast.ZArrayNode;
 import org.jruby.ast.ZSuperNode;
+import org.jruby.ast.ZYieldNode;
 import org.jruby.ast.types.ILiteralNode;
 import org.jruby.common.IRubyWarnings;
 import org.jruby.common.IRubyWarnings.ID;
@@ -135,6 +136,7 @@ public class Ruby19Parser implements RubyParser {
         this.support = support;
         lexer = new RubyYaccLexer(false);
         lexer.setParserSupport(support);
+        support.setLexer(lexer);
     }
 
     public void setWarnings(IRubyWarnings warnings) {
@@ -921,10 +923,10 @@ aref_args       : none
                     $$ = $1;
                 }
                 | args ',' assocs trailer {
-                    $$ = support.arg_append($1, new HashNode(getPosition(), $3));
+                    $$ = support.arg_append($1, new Hash19Node(getPosition(), $3));
                 }
                 | assocs trailer {
-                    $$ = support.newArrayNode(getPosition($1), new HashNode(getPosition(), $1));
+                    $$ = support.newArrayNode(getPosition($1), new Hash19Node(getPosition(), $1));
                 }
 
 paren_args      : tLPAREN2 opt_call_args rparen {
@@ -943,18 +945,18 @@ call_args       : command {
                     $$ = support.arg_blk_pass($1, $2);
                 }
                 | assocs opt_block_arg {
-                    $$ = support.newArrayNode(getPosition($1), new HashNode(getPosition(), $1));
+                    $$ = support.newArrayNode(getPosition($1), new Hash19Node(getPosition(), $1));
                     $$ = support.arg_blk_pass((Node)$$, $2);
                 }
                 | args ',' assocs opt_block_arg {
-                    $$ = support.arg_append($1, new HashNode(getPosition(), $3));
+                    $$ = support.arg_append($1, new Hash19Node(getPosition(), $3));
                     $$ = support.arg_blk_pass((Node)$$, $4);
                 }
                 | block_arg {
                 }
 
 command_args    : /* none */ {
-                    $$ = new Long(lexer.getCmdArgumentState().begin());
+                    $$ = Long.valueOf(lexer.getCmdArgumentState().begin());
                 } call_args {
                     lexer.getCmdArgumentState().reset($<Long>1.longValue());
                     $$ = $2;
@@ -966,6 +968,9 @@ block_arg       : tAMPER arg_value {
 
 opt_block_arg   : ',' block_arg {
                     $$ = $2;
+                }
+                | ',' {
+                    $$ = null;
                 }
                 | none_block_pass
 
@@ -1043,8 +1048,10 @@ primary         : literal
                     if ($2 != null) {
                         // compstmt position includes both parens around it
                         ((ISourcePositionHolder) $2).setPosition(getPosition($1));
+                        $$ = $2;
+                    } else {
+                        $$ = new NilNode(getPosition($1));
                     }
-                    $$ = $2;
                 }
                 | primary_value tCOLON2 tCONSTANT {
                     $$ = support.new_colon2(getPosition($1), $1, (String) $3.getValue());
@@ -1062,7 +1069,7 @@ primary         : literal
                     }
                 }
                 | tLBRACE assoc_list tRCURLY {
-                    $$ = new HashNode(getPosition($1), $2);
+                    $$ = new Hash19Node(getPosition($1), $2);
                 }
                 | kRETURN {
                     $$ = new ReturnNode($1.getPosition(), NilImplicitNode.NIL);
@@ -1071,10 +1078,10 @@ primary         : literal
                     $$ = support.new_yield(getPosition($1), $3);
                 }
                 | kYIELD tLPAREN2 rparen {
-                    $$ = new YieldNode(getPosition($1), null, false);
+                    $$ = new ZYieldNode(getPosition($1));
                 }
                 | kYIELD {
-                    $$ = new YieldNode($1.getPosition(), null, false);
+                    $$ = new ZYieldNode($1.getPosition());
                 }
                 | kDEFINED opt_nl tLPAREN2 expr rparen {
                     $$ = new DefinedNode(getPosition($1), $4);
@@ -1092,7 +1099,7 @@ primary         : literal
                 | method_call brace_block {
                     if ($1 != null && 
                           $<BlockAcceptingNode>1.getIterNode() instanceof BlockPassNode) {
-                        throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition($1), "Both block arg and actual block given.");
+                        throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition($1), lexer.getCurrentLine(), "Both block arg and actual block given.");
                     }
                     $$ = $<BlockAcceptingNode>1.setIterNode($2);
                     $<Node>$.setPosition(getPosition($1));
@@ -1148,10 +1155,10 @@ primary         : literal
                     support.popCurrentScope();
                 }
                 | kCLASS tLSHFT expr {
-                    $$ = new Boolean(support.isInDef());
+                    $$ = Boolean.valueOf(support.isInDef());
                     support.setInDef(false);
                 } term {
-                    $$ = new Integer(support.getInSingle());
+                    $$ = Integer.valueOf(support.getInSingle());
                     support.setInSingle(0);
                     support.pushLocalScope();
                 } bodystmt kEND {
@@ -1294,8 +1301,8 @@ block_param     : f_arg ',' f_block_optarg ',' f_rest_arg opt_f_block_arg {
                     $$ = support.new_args(getPosition($1), $1, null, $3, null, $4);
                 }
                 | f_arg ',' {
-    // FIXME, weird unnamed rest
-                    $$ = support.new_args($1.getPosition(), $1, null, null, null, null);
+                    RestArgNode rest = new UnnamedRestArgNode($1.getPosition(), support.getCurrentScope().addVariable("*"));
+                    $$ = support.new_args($1.getPosition(), $1, null, rest, null, null);
                 }
                 | f_arg ',' f_rest_arg ',' f_arg opt_f_block_arg {
                     $$ = support.new_args(getPosition($1), $1, null, $3, $5, $6);
@@ -1401,10 +1408,10 @@ do_block        : kDO_BLOCK {
 block_call      : command do_block {
                     // Workaround for JRUBY-2326 (MRI does not enter this production for some reason)
                     if ($1 instanceof YieldNode) {
-                        throw new SyntaxException(PID.BLOCK_GIVEN_TO_YIELD, getPosition($1), "block given to yield");
+                        throw new SyntaxException(PID.BLOCK_GIVEN_TO_YIELD, getPosition($1), lexer.getCurrentLine(), "block given to yield");
                     }
                     if ($<BlockAcceptingNode>1.getIterNode() instanceof BlockPassNode) {
-                        throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition($1), "Both block arg and actual block given.");
+                        throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition($1), lexer.getCurrentLine(), "Both block arg and actual block given.");
                     }
                     $$ = $<BlockAcceptingNode>1.setIterNode($2);
                     $<Node>$.setPosition(getPosition($1));
@@ -1911,7 +1918,7 @@ f_rest_arg      : restarg_mark tIDENTIFIER {
                     $$ = new RestArgNode(getPosition($1), (String) $2.getValue(), support.arg_var($2));
                 }
                 | restarg_mark {
-                    $$ = new UnnamedRestArgNode($1.getPosition(), support.getCurrentScope().getLocalScope().addVariable("*"));
+                    $$ = new UnnamedRestArgNode($1.getPosition(), support.getCurrentScope().addVariable("*"));
                 }
 
 blkarg_mark     : tAMPER2 | tAMPER
@@ -2024,9 +2031,21 @@ none_block_pass : /* none */ {
         lexer.setSource(source);
         lexer.setEncoding(configuration.getKCode().getEncoding());
         try {
-   //yyparse(lexer, new jay.yydebug.yyAnim("JRuby", 9));
-    //yyparse(lexer, new jay.yydebug.yyDebugAdapter());
-            yyparse(lexer, null);
+            Object debugger = null;
+            if (configuration.isDebug()) {
+                try {
+                    Class yyDebugAdapterClass = Class.forName("jay.yydebug.yyDebugAdapter");
+                    debugger = yyDebugAdapterClass.newInstance();
+                } catch (IllegalAccessException iae) {
+                    // ignore, no debugger present
+                } catch (InstantiationException ie) {
+                    // ignore, no debugger present
+                } catch (ClassNotFoundException cnfe) {
+                    // ignore, no debugger present
+                }
+            }
+	    //yyparse(lexer, new jay.yydebug.yyAnim("JRuby", 9));
+            yyparse(lexer, debugger);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (yyException e) {

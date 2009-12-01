@@ -7,7 +7,7 @@ import com.kenai.jffi.HeapInvocationBuffer;
 import com.kenai.jffi.InvocationBuffer;
 import com.kenai.jffi.Invoker;
 import com.kenai.jffi.ArrayFlags;
-import org.jruby.Ruby;
+import org.jruby.RubyBoolean;
 import org.jruby.RubyHash;
 import org.jruby.RubyModule;
 import org.jruby.RubyNumeric;
@@ -15,21 +15,21 @@ import org.jruby.RubyString;
 import org.jruby.RubySymbol;
 import org.jruby.ext.ffi.AbstractMemory;
 import org.jruby.ext.ffi.ArrayMemoryIO;
-import org.jruby.ext.ffi.BasePointer;
 import org.jruby.ext.ffi.Buffer;
 import org.jruby.ext.ffi.CallbackInfo;
 import org.jruby.ext.ffi.DirectMemoryIO;
 import org.jruby.ext.ffi.MemoryIO;
 import org.jruby.ext.ffi.MemoryPointer;
 import org.jruby.ext.ffi.NativeType;
-import org.jruby.ext.ffi.NullMemoryIO;
 import org.jruby.ext.ffi.Platform;
 import org.jruby.ext.ffi.Pointer;
 import org.jruby.ext.ffi.Struct;
 import org.jruby.ext.ffi.StructByValue;
+import org.jruby.ext.ffi.StructLayout;
 import org.jruby.ext.ffi.Type;
 import org.jruby.ext.ffi.Util;
 import org.jruby.internal.runtime.methods.DynamicMethod;
+import org.jruby.runtime.Block;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.ByteList;
@@ -153,23 +153,25 @@ public final class DefaultMethodFactory {
         switch (returnType) {
             case VOID:
                 return VoidInvoker.INSTANCE;
+            case BOOL:
+                return BooleanInvoker.INSTANCE;
             case POINTER:
                 return PointerInvoker.INSTANCE;
-            case INT8:
+            case CHAR:
                 return Signed8Invoker.INSTANCE;
-            case INT16:
+            case SHORT:
                 return Signed16Invoker.INSTANCE;
-            case INT32:
+            case INT:
                 return Signed32Invoker.INSTANCE;
-            case UINT8:
+            case UCHAR:
                 return Unsigned8Invoker.INSTANCE;
-            case UINT16:
+            case USHORT:
                 return Unsigned16Invoker.INSTANCE;
-            case UINT32:
+            case UINT:
                 return Unsigned32Invoker.INSTANCE;
-            case INT64:
+            case LONG_LONG:
                 return Signed64Invoker.INSTANCE;
-            case UINT64:
+            case ULONG_LONG:
                 return Unsigned64Invoker.INSTANCE;
             case LONG:
                 return Platform.getPlatform().longSize() == 32
@@ -179,9 +181,9 @@ public final class DefaultMethodFactory {
                 return Platform.getPlatform().longSize() == 32
                         ? Unsigned32Invoker.INSTANCE
                         : Unsigned64Invoker.INSTANCE;
-            case FLOAT32:
+            case FLOAT:
                 return Float32Invoker.INSTANCE;
-            case FLOAT64:
+            case DOUBLE:
                 return Float64Invoker.INSTANCE;
             case STRING:
                 return StringInvoker.INSTANCE;
@@ -203,7 +205,7 @@ public final class DefaultMethodFactory {
         } else if (type instanceof org.jruby.ext.ffi.Enum) {
             return getEnumMarshaller(type, type.callMethod(type.getRuntime().getCurrentContext(), "to_hash"));
         } else if (type instanceof org.jruby.ext.ffi.StructByValue) {
-            return StructByValueMarshaller.INSTANCE;
+            return new StructByValueMarshaller((org.jruby.ext.ffi.StructByValue) type);
         } else {
             return null;
         }
@@ -218,14 +220,14 @@ public final class DefaultMethodFactory {
      */
     static final ParameterMarshaller getEnumMarshaller(Type type, IRubyObject enums) {
         switch (type.getNativeType()) {
-            case INT8:
-            case UINT8:
-            case INT16:
-            case UINT16:
-            case INT32:
-            case UINT32:
-            case INT64:
-            case UINT64:
+            case CHAR:
+            case UCHAR:
+            case SHORT:
+            case USHORT:
+            case INT:
+            case UINT:
+            case LONG_LONG:
+            case ULONG_LONG:
                 if (!(enums instanceof RubyHash)) {
                     throw type.getRuntime().newArgumentError("wrong argument type "
                             + enums.getMetaClass().getName() + " (expected Hash)");
@@ -244,21 +246,23 @@ public final class DefaultMethodFactory {
      */
     static final ParameterMarshaller getMarshaller(NativeType type) {
         switch (type) {
-            case INT8:
+            case BOOL:
+                return BooleanMarshaller.INSTANCE;
+            case CHAR:
                 return Signed8Marshaller.INSTANCE;
-            case UINT8:
+            case UCHAR:
                 return Unsigned8Marshaller.INSTANCE;
-            case INT16:
+            case SHORT:
                 return Signed16Marshaller.INSTANCE;
-            case UINT16:
+            case USHORT:
                 return Unsigned16Marshaller.INSTANCE;
-            case INT32:
+            case INT:
                 return Signed32Marshaller.INSTANCE;
-            case UINT32:
+            case UINT:
                 return Unsigned32Marshaller.INSTANCE;
-            case INT64:
+            case LONG_LONG:
                 return Signed64Marshaller.INSTANCE;
-            case UINT64:
+            case ULONG_LONG:
                 return Unsigned64Marshaller.INSTANCE;
             case LONG:
                 return Platform.getPlatform().longSize() == 32
@@ -268,9 +272,9 @@ public final class DefaultMethodFactory {
                 return Platform.getPlatform().longSize() == 32
                         ? Signed32Marshaller.INSTANCE
                         : Unsigned64Marshaller.INSTANCE;
-            case FLOAT32:
+            case FLOAT:
                 return Float32Marshaller.INSTANCE;
-            case FLOAT64:
+            case DOUBLE:
                 return Float64Marshaller.INSTANCE;
             case STRING:
                 return StringMarshaller.INSTANCE;
@@ -282,8 +286,6 @@ public final class DefaultMethodFactory {
                 return BufferMarshaller.OUT;
             case BUFFER_INOUT:
                 return BufferMarshaller.INOUT;
-            case STRUCT:
-                return StructByValueMarshaller.INSTANCE;
             default:
                 throw new IllegalArgumentException("Invalid parameter type: " + type);
         }
@@ -296,11 +298,22 @@ public final class DefaultMethodFactory {
      * Invokes the native function with no return type, and returns nil to ruby.
      */
     private static final class VoidInvoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
             invoker.invokeInt(function, args);
-            return runtime.getNil();
+            return context.getRuntime().getNil();
         }
         public static final FunctionInvoker INSTANCE = new VoidInvoker();
+    }
+
+    /**
+     * Invokes the native function with a boolean return value.
+     * Returns a Boolean to ruby.
+     */
+    private static final class BooleanInvoker extends BaseInvoker {
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return context.getRuntime().newBoolean(invoker.invokeInt(function, args) != 0);
+        }
+        public static final FunctionInvoker INSTANCE = new BooleanInvoker();
     }
 
     /**
@@ -313,9 +326,9 @@ public final class DefaultMethodFactory {
             this.returnType = returnType;
         }
 
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return returnType.callMethod(runtime.getCurrentContext(), "find",
-                    runtime.newFixnum(invoker.invokeInt(function, args)));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return returnType.callMethod(context, "find",
+                    context.getRuntime().newFixnum(invoker.invokeInt(function, args)));
         }
     }
 
@@ -324,8 +337,8 @@ public final class DefaultMethodFactory {
      * Returns a Fixnum to ruby.
      */
     private static final class Signed8Invoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return Util.newSigned8(runtime, invoker.invokeInt(function, args));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return Util.newSigned8(context.getRuntime(), invoker.invokeInt(function, args));
         }
         public static final FunctionInvoker INSTANCE = new Signed8Invoker();
     }
@@ -335,8 +348,8 @@ public final class DefaultMethodFactory {
      * Returns a Fixnum to ruby.
      */
     private static final class Unsigned8Invoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return Util.newUnsigned8(runtime, invoker.invokeInt(function, args));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return Util.newUnsigned8(context.getRuntime(), invoker.invokeInt(function, args));
         }
         public static final FunctionInvoker INSTANCE = new Unsigned8Invoker();
     }
@@ -346,8 +359,8 @@ public final class DefaultMethodFactory {
      * Returns a Fixnum to ruby.
      */
     private static final class Signed16Invoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return Util.newSigned16(runtime, invoker.invokeInt(function, args));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return Util.newSigned16(context.getRuntime(), invoker.invokeInt(function, args));
         }
         public static final FunctionInvoker INSTANCE = new Signed16Invoker();
     }
@@ -357,8 +370,8 @@ public final class DefaultMethodFactory {
      * Returns a Fixnum to ruby.
      */
     private static final class Unsigned16Invoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return Util.newUnsigned16(runtime, invoker.invokeInt(function, args));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return Util.newUnsigned16(context.getRuntime(), invoker.invokeInt(function, args));
         }
         public static final FunctionInvoker INSTANCE = new Unsigned16Invoker();
     }
@@ -367,8 +380,8 @@ public final class DefaultMethodFactory {
      * Returns a Fixnum to ruby.
      */
     private static final class Signed32Invoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return Util.newSigned32(runtime, invoker.invokeInt(function, args));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return Util.newSigned32(context.getRuntime(), invoker.invokeInt(function, args));
         }
         public static final FunctionInvoker INSTANCE = new Signed32Invoker();
     }
@@ -378,8 +391,8 @@ public final class DefaultMethodFactory {
      * Returns a Fixnum to ruby.
      */
     private static final class Unsigned32Invoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return Util.newUnsigned32(runtime, invoker.invokeInt(function, args));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return Util.newUnsigned32(context.getRuntime(), invoker.invokeInt(function, args));
         }
         public static final FunctionInvoker INSTANCE = new Unsigned32Invoker();
     }
@@ -389,8 +402,8 @@ public final class DefaultMethodFactory {
      * Returns a Fixnum to ruby.
      */
     private static final class Signed64Invoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return Util.newSigned64(runtime, invoker.invokeLong(function, args));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return Util.newSigned64(context.getRuntime(), invoker.invokeLong(function, args));
         }
         public static final FunctionInvoker INSTANCE = new Signed64Invoker();
     }
@@ -400,8 +413,8 @@ public final class DefaultMethodFactory {
      * Returns a ruby Fixnum or Bignum.
      */
     private static final class Unsigned64Invoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return Util.newUnsigned64(runtime, invoker.invokeLong(function, args));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return Util.newUnsigned64(context.getRuntime(), invoker.invokeLong(function, args));
         }
         public static final FunctionInvoker INSTANCE = new Unsigned64Invoker();
     }
@@ -411,8 +424,8 @@ public final class DefaultMethodFactory {
      * Returns a Float to ruby.
      */
     private static final class Float32Invoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return runtime.newFloat(invoker.invokeFloat(function, args));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return context.getRuntime().newFloat(invoker.invokeFloat(function, args));
         }
         public static final FunctionInvoker INSTANCE = new Float32Invoker();
     }
@@ -422,8 +435,8 @@ public final class DefaultMethodFactory {
      * Returns a Float to ruby.
      */
     private static final class Float64Invoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return runtime.newFloat(invoker.invokeDouble(function, args));
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return context.getRuntime().newFloat(invoker.invokeDouble(function, args));
         }
         public static final FunctionInvoker INSTANCE = new Float64Invoker();
     }
@@ -433,9 +446,9 @@ public final class DefaultMethodFactory {
      * Returns a {@link MemoryPointer} to ruby.
      */
     private static final class PointerInvoker extends BaseInvoker {
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
             final long address = invoker.invokeAddress(function, args);
-            return new BasePointer(runtime, address != 0 ? new NativeMemoryIO(address) : new NullMemoryIO(runtime));
+            return new Pointer(context.getRuntime(), NativeMemoryIO.wrap(context.getRuntime(), address));
         }
         public static final FunctionInvoker INSTANCE = new PointerInvoker();
     }
@@ -445,23 +458,9 @@ public final class DefaultMethodFactory {
      * Returns a {@link RubyString} to ruby.
      */
     private static final class StringInvoker extends BaseInvoker {
-        private static final com.kenai.jffi.MemoryIO IO = com.kenai.jffi.MemoryIO.getInstance();
-
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            long address = invoker.invokeAddress(function, args);
-            if (address == 0) {
-                return runtime.getNil();
-            }
-            int len = (int) IO.getStringLength(address);
-            if (len == 0) {
-                return RubyString.newEmptyString(runtime);
-            }
-            byte[] bytes = new byte[len];
-            IO.getByteArray(address, bytes, 0, len);
-            
-            RubyString s =  RubyString.newStringShared(runtime, bytes);
-            s.setTaint(true);
-            return s;
+        
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            return FFIUtil.getString(context.getRuntime(), invoker.invokeAddress(function, args));
         }
         public static final FunctionInvoker INSTANCE = new StringInvoker();
     }
@@ -471,15 +470,15 @@ public final class DefaultMethodFactory {
      * Returns a FFI::Struct instance to ruby.
      */
     private static final class StructByValueInvoker extends BaseInvoker {
-        private static final com.kenai.jffi.MemoryIO IO = com.kenai.jffi.MemoryIO.getInstance();
         private final StructByValue info;
 
         public StructByValueInvoker(StructByValue info) {
             this.info = info;
         }
 
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
-            return info.newStruct(runtime, invoker.invokeStruct(function, args), 0);
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
+            Buffer buf = new Buffer(context.getRuntime(), invoker.invokeStruct(function, args), 0, info.getStructLayout().getSize());
+            return info.getStructClass().newInstance(context, new IRubyObject[] { buf }, Block.NULL_BLOCK);
         }
     }
 
@@ -488,7 +487,6 @@ public final class DefaultMethodFactory {
      * Returns a {@link Invoker} to ruby.
      */
     private static final class CallbackInvoker extends BaseInvoker {
-        private static final com.kenai.jffi.MemoryIO IO = com.kenai.jffi.MemoryIO.getInstance();
         private final Type returnType;
         private final Type[] parameterTypes;
 
@@ -498,12 +496,12 @@ public final class DefaultMethodFactory {
         }
         
 
-        public final IRubyObject invoke(Ruby runtime, Function function, HeapInvocationBuffer args) {
+        public final IRubyObject invoke(ThreadContext context, Function function, HeapInvocationBuffer args) {
             long address = invoker.invokeAddress(function, args);
             if (address == 0) {
-                return runtime.getNil();
+                return context.getRuntime().getNil();
             }
-            return new JFFIInvoker(runtime, address, returnType, parameterTypes);
+            return new JFFIInvoker(context.getRuntime(), address, returnType, parameterTypes);
         }
     }
 
@@ -537,6 +535,22 @@ public final class DefaultMethodFactory {
         public void marshal(Invocation invocation, InvocationBuffer buffer, IRubyObject parameter) {
             marshal(invocation.getThreadContext(), buffer, parameter);
         }
+    }
+
+    /**
+     * Converts a ruby Boolean into an 32 bit native integer.
+     */
+    static final class BooleanMarshaller extends BaseMarshaller {
+        public final void marshal(ThreadContext context, InvocationBuffer buffer, IRubyObject parameter) {
+            buffer.putInt(parameter.isTrue() ? 1 : 0);
+        }
+        public void marshal(Invocation invocation, InvocationBuffer buffer, IRubyObject parameter) {
+            if (!(parameter instanceof RubyBoolean)) {
+                throw invocation.getThreadContext().getRuntime().newTypeError("wrong argument type.  Expected true or false");
+            }
+            buffer.putInt(parameter.isTrue() ? 1 : 0);
+        }
+        public static final ParameterMarshaller INSTANCE = new BooleanMarshaller();
     }
 
     /**
@@ -774,6 +788,11 @@ public final class DefaultMethodFactory {
      * Converts a ruby String into a native pointer.
      */
     static final class StructByValueMarshaller extends BaseMarshaller {
+        private final StructLayout layout;
+        public StructByValueMarshaller(org.jruby.ext.ffi.StructByValue sbv) {
+            layout = sbv.getStructLayout();
+        }
+
 
         public final void marshal(ThreadContext context, InvocationBuffer buffer, IRubyObject parameter) {
             if (!(parameter instanceof Struct)) {
@@ -785,6 +804,10 @@ public final class DefaultMethodFactory {
             if (!(memory instanceof AbstractMemory)) {
                 throw context.getRuntime().newTypeError("wrong struct memory type "
                         + memory.getMetaClass().getName());
+            }
+
+            if (((AbstractMemory) memory).getSize() < layout.getSize()) {
+                throw context.getRuntime().newArgumentError("struct memory too small for parameter");
             }
 
             MemoryIO io = ((AbstractMemory) memory).getMemoryIO();
@@ -804,6 +827,5 @@ public final class DefaultMethodFactory {
         public final void marshal(Invocation invocation, InvocationBuffer buffer, IRubyObject parameter) {
             marshal(invocation.getThreadContext(), buffer, parameter);
         }
-        public static final ParameterMarshaller INSTANCE = new StructByValueMarshaller();
     }
 }

@@ -188,6 +188,13 @@ public interface BodyCompiler {
     public void createNewHash(Object elements, ArrayCallback callback, int keyCount);
     
     /**
+    * @see createNewHash
+    *
+    * Create new hash running in ruby 1.9 compat version.
+    */
+    public void createNewHash19(Object elements, ArrayCallback callback, int keyCount);
+    
+    /**
      * Create a new range. It is expected that the stack will contain the end and begin values for the range as
      * its topmost and second topmost elements.
      * 
@@ -317,7 +324,7 @@ public interface BodyCompiler {
      */
     public void defineNewMethod(String name, int methodArity, StaticScope scope,
             CompilerCallback body, CompilerCallback args,
-            CompilerCallback receiver, ASTInspector inspector, boolean root);
+            CompilerCallback receiver, ASTInspector inspector, boolean root, String filename, int line);
     
     /**
      * Define an alias for a new name to an existing oldName'd method.
@@ -587,4 +594,10 @@ public interface BodyCompiler {
             List<ArgumentsCallback> conditionals,
             List<CompilerCallback> bodies,
             CompilerCallback fallback);
+
+    public void raiseTypeError(String string);
+
+    public void traceLine();
+    public void traceClass();
+    public void traceEnd();
 }

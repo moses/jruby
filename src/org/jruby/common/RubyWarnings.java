@@ -48,6 +48,10 @@ public class RubyWarnings implements IRubyWarnings, WarnCallback {
         warn(ID.MISCELLANEOUS, message);
     }
 
+    public org.jruby.Ruby getRuntime() {
+        return runtime;
+    }
+
     /**
      * Prints a warning, unless $VERBOSE is nil.
      */
@@ -82,11 +86,15 @@ public class RubyWarnings implements IRubyWarnings, WarnCallback {
      * Verbose mode warning methods, their contract is that consumer must explicitly check for runtime.isVerbose()
      * before calling them
      */
+    public void warning(String message, Object... data) {
+        warning(ID.MISCELLANEOUS, message, data);
+    }
+
     public void warning(ID id, String message, Object... data) {
         ThreadContext context = runtime.getCurrentContext();
         warning(id, context.getFile(), context.getLine(), message, data);
     }
-    
+
     /**
      * Prints a warning, only in verbose mode.
      */

@@ -34,6 +34,7 @@ import org.jruby.Ruby;
 import org.jruby.RubyModule;
 import org.jruby.exceptions.JumpException;
 import org.jruby.exceptions.RaiseException;
+import org.jruby.lexer.yacc.ISourcePosition;
 import org.jruby.parser.StaticScope;
 import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
@@ -45,13 +46,15 @@ import org.jruby.runtime.builtin.IRubyObject;
 
 public class ReflectedCompiledMethod extends CompiledMethod {
     private final Method method;
+    private final ISourcePosition position;
     
     public ReflectedCompiledMethod(RubyModule implementationClass, Arity arity,
-            Visibility visibility, StaticScope staticScope, Object scriptObject, Method method, CallConfiguration callConfig) {
+            Visibility visibility, StaticScope staticScope, Object scriptObject, Method method, CallConfiguration callConfig, ISourcePosition position) {
         super();
         init(implementationClass, arity, visibility, staticScope, scriptObject, callConfig);
         
         this.method = method;
+        this.position = position;
     }
 
     @Override
@@ -64,10 +67,9 @@ public class ReflectedCompiledMethod extends CompiledMethod {
             boolean isTrace = runtime.hasEventHooks();
             try {
                 if (isTrace) {
-                    // XXX Wrong, but will have to do for now
-                    runtime.callEventHooks(context, RubyEvent.CALL, context.getFile(), context.getLine(), name, getImplementationClass());
+                    runtime.callEventHooks(context, RubyEvent.CALL, position.getFile(), position.getStartLine(), name, getImplementationClass());
                 }
-                return (IRubyObject)method.invoke($scriptObject, context, self, args, block);
+                return (IRubyObject)method.invoke(null, $scriptObject, context, self, args, block);
             } finally {
                 if (isTrace) {
                     Frame frame = context.getPreviousFrame();
@@ -77,9 +79,9 @@ public class ReflectedCompiledMethod extends CompiledMethod {
             }
             
         } catch (IllegalArgumentException e) {
-            throw RaiseException.createNativeRaiseException(runtime, e);
+            throw RaiseException.createNativeRaiseException(runtime, e, method);
         } catch (IllegalAccessException e) {
-            throw RaiseException.createNativeRaiseException(runtime, e);
+            throw RaiseException.createNativeRaiseException(runtime, e, method);
         } catch (InvocationTargetException e) {
             Throwable cause = e.getCause();
             if (cause instanceof JumpException.ReturnJump) {
@@ -91,7 +93,7 @@ public class ReflectedCompiledMethod extends CompiledMethod {
             } else if (cause instanceof Error) {
                 throw (Error)cause;                
             } else {
-                throw RaiseException.createNativeRaiseException(runtime, cause);
+                throw RaiseException.createNativeRaiseException(runtime, cause, method);
             }
         } finally {
             callConfig.post(context);

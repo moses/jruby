@@ -114,6 +114,7 @@ import org.jruby.ast.XStrNode;
 import org.jruby.ast.YieldNode;
 import org.jruby.ast.ZArrayNode;
 import org.jruby.ast.ZSuperNode;
+import org.jruby.ast.ZYieldNode;
 import org.jruby.ast.ZeroArgNode;
 import org.jruby.ast.types.ILiteralNode;
 import org.jruby.common.IRubyWarnings;
@@ -142,6 +143,7 @@ public class DefaultRubyParser implements RubyParser {
         this.support = support;
         lexer = new RubyYaccLexer();
         lexer.setParserSupport(support);
+        support.setLexer(lexer);
     }
 
     public void setWarnings(IRubyWarnings warnings) {
@@ -966,7 +968,7 @@ call_args2    : arg_value ',' args opt_block_arg {
               }
 
 command_args  : /* none */ { 
-	          $$ = new Long(lexer.getCmdArgumentState().begin());
+	          $$ = Long.valueOf(lexer.getCmdArgumentState().begin());
 	      } open_args {
                   lexer.getCmdArgumentState().reset($<Long>1.longValue());
                   $$ = $2;
@@ -1037,8 +1039,10 @@ primary       : literal
                   if ($2 != null) {
                       // compstmt position includes both parens around it
                       ((ISourcePositionHolder) $2).setPosition(getPosition($1));
+                      $$ = $2;
+                  } else {
+                      $$ = new NilNode(getPosition($1));
                   }
-		  $$ = $2;
               }
               | primary_value tCOLON2 tCONSTANT {
                   $$ = support.new_colon2(getPosition($1), $1, (String) $3.getValue());
@@ -1050,7 +1054,7 @@ primary       : literal
                   if ($1 instanceof SelfNode) {
                       $$ = support.new_fcall(new Token("[]", getPosition($1)), $3, null);
                   } else {
-                      $$ = support.new_call($1, new Token("[]", getPosition($1)), $3, null);
+                      $$ = support.new_aref($1, new Token("[]", getPosition($1)), $3);
                   }
               }
               | tLBRACK aref_args tRBRACK {
@@ -1072,10 +1076,10 @@ primary       : literal
                   $$ = support.new_yield(getPosition($1), $3);
               }
               | kYIELD tLPAREN2 tRPAREN {
-                  $$ = new YieldNode(getPosition($1), null, false);
+                  $$ = new ZYieldNode(getPosition($1));
               }
               | kYIELD {
-                  $$ = new YieldNode(getPosition($1), null, false);
+                  $$ = new ZYieldNode(getPosition($1));
               }
               | kDEFINED opt_nl tLPAREN2 expr tRPAREN {
                   $$ = new DefinedNode(getPosition($1), $4);
@@ -1087,7 +1091,7 @@ primary       : literal
               | method_call brace_block {
 	          if ($1 != null && 
                       $<BlockAcceptingNode>1.getIterNode() instanceof BlockPassNode) {
-                      throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition($1), "Both block arg and actual block given.");
+                      throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition($1), lexer.getCurrentLine(), "Both block arg and actual block given.");
 		  }
 		  $$ = $<BlockAcceptingNode>1.setIterNode($2);
 		  $<Node>$.setPosition(getPosition($1));
@@ -1147,10 +1151,10 @@ primary       : literal
                   support.popCurrentScope();
               }
               | kCLASS tLSHFT expr {
-                  $$ = new Boolean(support.isInDef());
+                  $$ = Boolean.valueOf(support.isInDef());
                   support.setInDef(false);
               } term {
-                  $$ = new Integer(support.getInSingle());
+                  $$ = Integer.valueOf(support.getInSingle());
                   support.setInSingle(0);
 		  support.pushLocalScope();
               } bodystmt kEND {
@@ -1240,12 +1244,15 @@ block_var     : lhs
 opt_block_var : none
               | tPIPE /* none */ tPIPE {
                   $$ = new ZeroArgNode(getPosition($1));
+                  lexer.commandStart = true;
               }
               | tOROP {
                   $$ = new ZeroArgNode(getPosition($1));
+                  lexer.commandStart = true;
 	      }
               | tPIPE block_var tPIPE {
                   $$ = $2;
+                  lexer.commandStart = true;
 
 		  // Include pipes on multiple arg type
                   if ($2 instanceof MultipleAsgnNode) {
@@ -1264,10 +1271,10 @@ do_block      : kDO_BLOCK {
 block_call    : command do_block {
                   // Workaround for JRUBY-2326 (MRI does not enter this production for some reason)
                   if ($1 instanceof YieldNode) {
-                      throw new SyntaxException(PID.BLOCK_GIVEN_TO_YIELD, getPosition($1), "block given to yield");
+                      throw new SyntaxException(PID.BLOCK_GIVEN_TO_YIELD, getPosition($1), lexer.getCurrentLine(), "block given to yield");
                   }
 	          if ($<BlockAcceptingNode>1.getIterNode() instanceof BlockPassNode) {
-                      throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition($1), "Both block arg and actual block given.");
+                      throw new SyntaxException(PID.BLOCK_ARG_AND_BLOCK_GIVEN, getPosition($1), lexer.getCurrentLine(), "Both block arg and actual block given.");
                   }
 		  $$ = $<BlockAcceptingNode>1.setIterNode($2);
 		  $<Node>$.setPosition(getPosition($1));
@@ -1605,6 +1612,7 @@ f_arglist      : tLPAREN2 f_args opt_nl tRPAREN {
                    $$ = $2;
                    $<ISourcePositionHolder>$.setPosition(getPosition($1));
                    lexer.setState(LexState.EXPR_BEG);
+                   lexer.commandStart = true;
                }
                | f_args term {
                    $$ = $1;
@@ -1831,7 +1839,19 @@ none_block_pass: /* none */ {
         lexer.setSource(source);
         lexer.setEncoding(configuration.getKCode().getEncoding());
         try {
-            Object debugger = configuration.isDebug() ? new jay.yydebug.yyDebugAdapter() : null;
+            Object debugger = null;
+            if (configuration.isDebug()) {
+                try {
+                    Class yyDebugAdapterClass = Class.forName("jay.yydebug.yyDebugAdapter");
+                    debugger = yyDebugAdapterClass.newInstance();
+                } catch (IllegalAccessException iae) {
+                    // ignore, no debugger present
+                } catch (InstantiationException ie) {
+                    // ignore, no debugger present
+                } catch (ClassNotFoundException cnfe) {
+                    // ignore, no debugger present
+                }
+            }
 	    //yyparse(lexer, new jay.yydebug.yyAnim("JRuby", 9));
             yyparse(lexer, debugger);
         } catch (IOException e) {

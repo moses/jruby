@@ -1,8 +1,11 @@
 require 'test/unit'
 require 'socket'
 require 'thread'
+require 'test/test_helper'
 
 class SocketTest < Test::Unit::TestCase
+  include TestHelper
+
   def test_tcp_socket_allows_nil_for_hostname
     assert_nothing_raised do
       server = TCPServer.new(nil, 7789)
@@ -13,6 +16,31 @@ class SocketTest < Test::Unit::TestCase
       client = TCPSocket.new(nil, 7789)
       client.write ""
       t.join
+    end
+  end
+
+  #JRUBY-3827
+  def test_nil_hostname_and_passive_returns_inaddr_any
+    assert_nothing_raised do
+      addrs = Socket::getaddrinfo(nil, 7789, Socket::AF_UNSPEC, Socket::SOCK_STREAM, 0, Socket::AI_PASSIVE)
+      assert_equal(1, addrs.size)
+      assert_equal("0.0.0.0", addrs[0][2])
+      assert_equal("0.0.0.0", addrs[0][3])
+    end
+  end
+
+  def test_nil_hostname_and_no_flags_returns_localhost
+    assert_nothing_raised do
+      addrs = Socket::getaddrinfo(nil, 7789, Socket::AF_UNSPEC, Socket::SOCK_STREAM, 0)
+      assert_equal(1, addrs.size)
+      
+      # FIXME, behaves differently on Windows, both JRuby and MRI.
+      # JRuby returns "127.0.0.1", "127.0.0.1"
+      # MRI returns  "<actual_hostname>", "127.0.0.1"
+      unless WINDOWS
+        assert_equal("localhost", addrs[0][2])
+        assert_equal("127.0.0.1", addrs[0][3])
+      end
     end
   end
 
@@ -63,8 +91,7 @@ class UNIXSocketTests < Test::Unit::TestCase
   # this is intentional, otherwise test run fails on windows
   def test_dummy; end
 
-  # TODO: not working on solaris right now; see JRUBY-2232
-  if defined?(UNIXSocket) && !Java::org.jruby.ext.posix.util.Platform::IS_SOLARIS
+  if defined?(UNIXSocket)
     def test_unix_socket_path
       path = "/tmp/sample"
 
@@ -99,10 +126,11 @@ class UNIXSocketTests < Test::Unit::TestCase
       File.unlink(path) if File.exist?(path)
     end
 
-    # TODO: this test is excluded due to JRUBY-2219
-    def XXXtest_unix_socket_peeraddr_raises_enotconn
+    def test_unix_socket_peeraddr_raises_enotconn
       path = "/tmp/sample"
       File.unlink(path) if File.exist?(path)
+
+      server = UNIXServer.open(path)
       assert_raises(Errno::ENOTCONN) do
         server.peeraddr
       end
@@ -155,9 +183,7 @@ class UNIXSocketTests < Test::Unit::TestCase
       File.unlink(path) if File.exist?(path)
     end
 
-    # TODO: this test is currently excluded, since
-    # it hangs on Linux.
-    def XXXtest_can_create_socket_server_and_accept_nonblocking
+    def test_can_create_socket_server_and_accept_nonblocking
       path = "/tmp/sample"
 
       File.unlink(path) if File.exist?(path)

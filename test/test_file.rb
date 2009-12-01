@@ -1,10 +1,23 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 require 'test/unit'
 require 'rbconfig'
 require 'fileutils'
+require 'tempfile'
+require 'pathname'
 
 class TestFile < Test::Unit::TestCase
   WINDOWS = Config::CONFIG['host_os'] =~ /Windows|mswin/
+
+  def setup
+    @teardown_blocks = []
+  end
+
+  def teardown
+    @teardown_blocks.each do |b|
+      b.call
+    end
+  end
+
   def jruby_specific_test
     flunk("JRuby specific test") unless defined?(JRUBY_VERSION)
   end
@@ -60,7 +73,7 @@ class TestFile < Test::Unit::TestCase
 
   # JRUBY-1116: these are currently broken on windows
   # what are these testing anyway?!?!
-  if Config::CONFIG['target_os'] =~ /Windows|mswin/
+  if WINDOWS
     def test_windows_basename
       assert_equal "", File.basename("c:")
       assert_equal "\\", File.basename("c:\\")
@@ -141,6 +154,10 @@ class TestFile < Test::Unit::TestCase
       ### assert_equal("//bar/foo", File.expand_path("../foo", "//bar"))
       ### assert_equal("///bar/foo", File.expand_path("../foo", "///bar"))
       ### assert_equal("//one/two", File.expand_path("/two", "//one"))
+    end
+
+    def test_pathname_windows
+      assert_equal(Pathname('foo.bar.rb').expand_path.relative_path_from(Pathname(Dir.pwd)), Pathname('foo.bar.rb'))
     end
   else
     def test_expand_path
@@ -816,34 +833,41 @@ class TestFile < Test::Unit::TestCase
   end
 
   def test_allow_override_of_make_tmpname
-    require 'tempfile'
     # mimics behavior of attachment_fu, which overrides private #make_tmpname
     Tempfile.class_eval do
+      alias_method :save_make_tmpname, :make_tmpname
       def make_tmpname(basename, n)
         ext = nil
         sprintf("%s%d-%d%s", basename.to_s.gsub(/\.\w+$/) { |s| ext = s; '' }, $$, n, ext)
       end
     end
 
-    t = Tempfile.new "tcttac.jpg", File.dirname(__FILE__)
-    assert t.path =~ /\.jpg$/
+    @teardown_blocks << proc do
+      Tempfile.class_eval { alias_method :make_tmpname, :save_make_tmpname }
+    end
+
+    begin
+      t = Tempfile.new "tcttac.jpg", File.dirname(__FILE__)
+      assert t.path =~ /\.jpg$/
+    ensure
+      t.close
+    end
   end
 
-  def test_mode_of_tempfile_is_600
-    t = Tempfile.new "tcttac.jpg"
-    assert_equal 0100600, File.stat(t.path).mode
+  unless WINDOWS
+    def test_mode_of_tempfile_is_600
+      t = Tempfile.new "tcttac.jpg"
+      assert_equal 0100600, File.stat(t.path).mode
+    end
   end
 
   # See JRUBY-2694; we don't have 1.8.7 support yet
-=begin
   def test_tempfile_with_suffix
-    require 'tempfile'
     Tempfile.open(['prefix', 'suffix']) { |f|
       assert_match(/^prefix/, File.basename(f.path))
       assert_match(/suffix$/, f.path)
     }
   end
-=end
 
   def test_file_size
     size = File.size('build.xml')
@@ -851,12 +875,62 @@ class TestFile < Test::Unit::TestCase
     assert_equal(size, File.size(File.new('build.xml')))
   end
 
+  # JRUBY-4073
+  def test_file_sizes
+    filename = '100_bytes.bin'
+    begin
+      File.open(filename, 'wb+') { |f|
+        f.write('0' * 100)
+      }
+      assert_equal(100, File.size(filename))
+      assert_equal(100, File.stat(filename).size)
+      assert_equal(100, File.stat(filename).size?)
+      assert_match(/\ssize=100,/, File.stat(filename).inspect)
+      assert_equal(100, File::Stat.new(filename).size)
+      assert_equal(100, File::Stat.new(filename).size?)
+      assert_match(/\ssize=100,/, File::Stat.new(filename).inspect)
+    ensure
+      File.unlink(filename)
+    end
+  end
+
+  # JRUBY-4149
+  def test_open_file_sizes
+    filename = '100_bytes.bin'
+    begin
+      File.open(filename, 'wb+') { |f|
+        f.write('0' * 100)
+        f.flush; f.flush
+
+        assert_equal(100, f.stat.size)
+        assert_equal(100, f.stat.size?)
+        assert_match(/\ssize=100,/, f.stat.inspect)
+
+        assert_equal(100, File.size(filename))
+        assert_equal(100, File.stat(filename).size)
+        assert_equal(100, File.stat(filename).size?)
+        assert_match(/\ssize=100,/, File.stat(filename).inspect)
+
+        assert_equal(100, File::Stat.new(filename).size)
+        assert_equal(100, File::Stat.new(filename).size?)
+        assert_match(/\ssize=100,/, File::Stat.new(filename).inspect)
+      }
+    ensure
+      File.unlink(filename)
+    end
+  end
+
   # JRUBY-3634: File.read or File.open with a url to a file resource fails with StringIndexOutOfBounds exception
   def test_file_url
     path = File.expand_path(__FILE__)
     expect = File.read(__FILE__)[0..100]
-    got = File.read("file://#{path}")[0..100]
+    got = File.read("file:///#{path}")[0..100]
 
     assert_equal(expect, got)
+  end
+
+  def test_basename_unicode
+    filename = 'dir/a ⼈〉〃〄⨶↖.pdf'
+    assert_equal("a \342\274\210\343\200\211\343\200\203\343\200\204\342\250\266\342\206\226.pdf", File.basename(filename))
   end
 end

@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.jruby.RubyInstanceConfig;
+import org.jruby.runtime.callsite.ArefCallSite;
 import org.jruby.runtime.callsite.FunctionalCachingCallSite;
 import org.jruby.runtime.callsite.RespondToCallSite;
 import org.jruby.runtime.callsite.SuperCallSite;
@@ -121,7 +122,7 @@ public class MethodIndex {
         Integer index = NUMBERS.get(methodName);
         
         if (index == null) {
-            index = new Integer(NAMES.size());
+            index = Integer.valueOf(NAMES.size());
             NUMBERS.put(methodName, index);
             NAMES.add(methodName);
         }
@@ -133,29 +134,31 @@ public class MethodIndex {
         // fast and safe respond_to? call site logic
         if (name.equals("respond_to?")) return new RespondToCallSite();
         
-        if (!RubyInstanceConfig.FASTOPS_COMPILE_ENABLED) {
-            return new NormalCachingCallSite(name);
-        } else {
-            if (name.equals("+")) {
-                return new PlusCallSite();
-            } else if (name.equals("-")) {
-                return new MinusCallSite();
-            } else if (name.equals("*")) {
-                return new MulCallSite();
-            } else if (name.equals("/")) {
-                return new DivCallSite();
-            } else if (name.equals("<")) {
-                return new LtCallSite();
-            } else if (name.equals("<=")) {
-                return new LeCallSite();
-            } else if (name.equals(">")) {
-                return new GtCallSite();
-            } else if (name.equals(">=")) {
-                return new GeCallSite();
-            } else {
-                return new NormalCachingCallSite(name);
-            }
+        if (RubyInstanceConfig.FASTOPS_COMPILE_ENABLED) return getFastOpsCallSite(name);
+
+        return new NormalCachingCallSite(name);
+    }
+
+    public synchronized static CallSite getFastOpsCallSite(String name) {
+        if (name.equals("+")) {
+            return new PlusCallSite();
+        } else if (name.equals("-")) {
+            return new MinusCallSite();
+        } else if (name.equals("*")) {
+            return new MulCallSite();
+        } else if (name.equals("<")) {
+            return new LtCallSite();
+        } else if (name.equals("<=")) {
+            return new LeCallSite();
+        } else if (name.equals(">")) {
+            return new GtCallSite();
+        } else if (name.equals(">=")) {
+            return new GeCallSite();
+        } else if (name.equals("[]")) {
+            return new ArefCallSite();
         }
+
+        return new NormalCachingCallSite(name);
     }
     
     public synchronized static CallSite getFunctionalCallSite(String name) {

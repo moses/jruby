@@ -43,6 +43,15 @@ class BoundedNativeMemoryIO implements MemoryIO, DirectMemoryIO {
         checkBounds(offset, 1);
         return offset == 0 ? this :new BoundedNativeMemoryIO(this, offset);
     }
+
+    public final java.nio.ByteBuffer asByteBuffer() {
+        return IO.newDirectByteBuffer(address, (int) size);
+    }
+
+    Ruby getRuntime() {
+        return this.runtime;
+    }
+
     @Override
     public final boolean equals(Object obj) {
         return (obj instanceof DirectMemoryIO) && ((DirectMemoryIO) obj).getAddress() == address;
@@ -104,8 +113,7 @@ class BoundedNativeMemoryIO implements MemoryIO, DirectMemoryIO {
 
     public final DirectMemoryIO getMemoryIO(long offset) {
         checkBounds(offset, ADDRESS_SIZE >> 3);
-        final long ptr = IO.getAddress(address + offset);
-        return ptr != 0 ? new NativeMemoryIO(ptr) : null;
+        return NativeMemoryIO.wrap(runtime, IO.getAddress(address + offset));
     }
 
     public final void putByte(long offset, byte value) {
@@ -228,4 +236,22 @@ class BoundedNativeMemoryIO implements MemoryIO, DirectMemoryIO {
         checkBounds(offset, size);
         IO.setMemory(address + offset, size, value);
     }
+
+    public final byte[] getZeroTerminatedByteArray(long offset) {
+        checkBounds(offset, 1);
+        return FFIUtil.getZeroTerminatedByteArray(address + offset);
+    }
+
+    public final byte[] getZeroTerminatedByteArray(long offset, int maxlen) {
+        checkBounds(offset, 1);
+        return FFIUtil.getZeroTerminatedByteArray(address + offset, 
+                Math.min(maxlen, (int) (size - offset)));
+    }
+
+    public void putZeroTerminatedByteArray(long offset, byte[] bytes, int off, int len) {
+        // Ensure room for terminating zero byte
+        checkBounds(offset, len + 1);
+        FFIUtil.putZeroTerminatedByteArray(address + offset, bytes, off, len);
+    }
+
 }

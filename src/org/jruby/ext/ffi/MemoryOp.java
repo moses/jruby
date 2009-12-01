@@ -2,12 +2,15 @@
 package org.jruby.ext.ffi;
 
 import org.jruby.Ruby;
+import org.jruby.RubyClass;
+import org.jruby.runtime.Block;
 import org.jruby.runtime.builtin.IRubyObject;
 
 /**
  * Defines memory operations for a primitive type
  */
 abstract class MemoryOp {
+    public static final MemoryOp BOOL = new BooleanOp();
     public static final MemoryOp INT8 = new Signed8();
     public static final MemoryOp UINT8 = new Unsigned8();
     public static final MemoryOp INT16 = new Signed16();
@@ -21,25 +24,27 @@ abstract class MemoryOp {
 
     public static final MemoryOp getMemoryOp(NativeType type) {
         switch (type) {
-            case INT8:
+            case BOOL:
+                return BOOL;
+            case CHAR:
                 return INT8;
-            case UINT8:
+            case UCHAR:
                 return UINT8;
-            case INT16:
+            case SHORT:
                 return INT16;
-            case UINT16:
+            case USHORT:
                 return UINT16;
-            case INT32:
+            case INT:
                 return INT32;
-            case UINT32:
+            case UINT:
                 return UINT32;
-            case INT64:
+            case LONG_LONG:
                 return INT64;
-            case UINT64:
+            case ULONG_LONG:
                 return UINT64;
-            case FLOAT32:
+            case FLOAT:
                 return FLOAT32;
-            case FLOAT64:
+            case DOUBLE:
                 return FLOAT64;
             case LONG:
                 return Platform.getPlatform().longSize() == 32
@@ -51,9 +56,37 @@ abstract class MemoryOp {
                 return null;
         }
     }
+
+    public static final MemoryOp getMemoryOp(Type type) {
+        if (type instanceof Type.Builtin) {
+            return getMemoryOp(type.getNativeType());
+        } else if (type instanceof StructByValue) {
+            StructByValue sbv = (StructByValue) type;
+            return new StructOp(sbv.getStructClass());
+        }
+        return null;
+    }
     
     abstract IRubyObject get(Ruby runtime, MemoryIO io, long offset);
     abstract void put(Ruby runtime, MemoryIO io, long offset, IRubyObject value);
+
+    IRubyObject get(Ruby runtime, AbstractMemory ptr, long offset) {
+        return get(runtime, ptr.getMemoryIO(), offset);
+    }
+
+    void put(Ruby runtime, AbstractMemory ptr, long offset, IRubyObject value) {
+        put(runtime, ptr.getMemoryIO(), offset, value);
+    }
+
+    static final class BooleanOp extends MemoryOp {
+        public final void put(Ruby runtime, MemoryIO io, long offset, IRubyObject value) {
+            io.putInt(offset, value.isTrue() ? 1 : 0);
+        }
+
+        public final IRubyObject get(Ruby runtime, MemoryIO io, long offset) {
+            return runtime.newBoolean(io.getInt(offset) != 0);
+        }
+    }
 
     static final class Signed8 extends MemoryOp {
         public final void put(Ruby runtime, MemoryIO io, long offset, IRubyObject value) {
@@ -144,6 +177,42 @@ abstract class MemoryOp {
 
         public final IRubyObject get(Ruby runtime, MemoryIO io, long offset) {
             return runtime.newFloat(io.getDouble(offset));
+        }
+    }
+
+    static final class StructOp extends MemoryOp {
+        private final RubyClass structClass;
+
+        public StructOp(RubyClass structClass) {
+            this.structClass = structClass;
+        }
+
+        @Override
+        IRubyObject get(Ruby runtime, MemoryIO io, long offset) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        void put(Ruby runtime, MemoryIO io, long offset, IRubyObject value) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        IRubyObject get(Ruby runtime, AbstractMemory ptr, long offset) {
+            return structClass.newInstance(runtime.getCurrentContext(),
+                        new IRubyObject[] { ptr.slice(runtime, offset) },
+                        Block.NULL_BLOCK);
+        }
+
+        @Override
+        void put(Ruby runtime, AbstractMemory ptr, long offset, IRubyObject value) {
+            if (!(value instanceof Struct)) {
+                throw runtime.newTypeError("expected a struct");
+            }
+            Struct s = (Struct) value;
+            byte[] tmp = new byte[Struct.getStructSize(runtime, s)];
+            s.getMemoryIO().get(0, tmp, 0, tmp.length);
+            ptr.getMemoryIO().put(offset, tmp, 0, tmp.length);
         }
     }
 }

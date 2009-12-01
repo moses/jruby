@@ -33,6 +33,7 @@
  ***** END LICENSE BLOCK *****/
 package org.jruby.javasupport;
 
+import java.lang.reflect.Member;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,8 +42,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyModule;
-import org.jruby.RubyProc;
 import org.jruby.exceptions.RaiseException;
+import org.jruby.java.proxies.JavaProxy;
 import org.jruby.javasupport.util.ObjectProxyCache;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.runtime.callback.Callback;
@@ -65,8 +66,6 @@ public class JavaSupport {
     }
 
     private final Ruby runtime;
-
-    private final Map<String, RubyProc> exceptionHandlers = new HashMap<String, RubyProc>();
     
     private final ObjectProxyCache<IRubyObject,RubyClass> objectProxyCache = 
         // TODO: specifying soft refs, may want to compare memory consumption,
@@ -74,13 +73,7 @@ public class JavaSupport {
         new ObjectProxyCache<IRubyObject,RubyClass>(ObjectProxyCache.ReferenceType.WEAK) {
 
         public IRubyObject allocateProxy(Object javaObject, RubyClass clazz) {
-            IRubyObject proxy = clazz.allocate();
-            JavaObject wrappedObject = JavaObject.wrap(clazz.getRuntime(), javaObject);
-            proxy.getInstanceVariables().fastSetInstanceVariable("@java_object",
-                   wrappedObject);
-            proxy.dataWrapStruct(wrappedObject);
-            
-            return proxy;
+            return Java.allocateProxy(javaObject, clazz);
         }
     };
     
@@ -190,30 +183,16 @@ public class JavaSupport {
     public void putJavaClassIntoCache(JavaClass clazz) {
         javaClassCache.put(clazz.javaClass(), clazz);
     }
-    
-    public void defineExceptionHandler(String exceptionClass, RubyProc handler) {
-        exceptionHandlers.put(exceptionClass, handler);
-    }
 
-    public void handleNativeException(Throwable exception) {
+    public void handleNativeException(Throwable exception, Member target) {
         if (exception instanceof RaiseException) {
             throw (RaiseException) exception;
         }
-        Class excptnClass = exception.getClass();
-        RubyProc handler = exceptionHandlers.get(excptnClass.getName());
-        while (handler == null &&
-               excptnClass != Throwable.class) {
-            excptnClass = excptnClass.getSuperclass();
-        }
-        if (handler != null) {
-            handler.call(runtime.getCurrentContext(), new IRubyObject[]{JavaUtil.convertJavaToRuby(runtime, exception)});
-        } else {
-            throw createRaiseException(exception);
-        }
+        throw createRaiseException(exception, target);
     }
 
-    private RaiseException createRaiseException(Throwable exception) {
-        RaiseException re = RaiseException.createNativeRaiseException(runtime, exception);
+    private RaiseException createRaiseException(Throwable exception, Member target) {
+        RaiseException re = RaiseException.createNativeRaiseException(runtime, exception, target);
         
         return re;
     }
